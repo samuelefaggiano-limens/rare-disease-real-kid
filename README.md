@@ -17,17 +17,17 @@ This is a foundational track designed to validate that our pipeline can recover 
 The necessary data has been downloaded and is available in the local `data/` directory.
 
 #### 1. Clinical Data
-*   **File:** `data/Challenge_Clinical_Phenotype_1.docx`
-*   **What it is:** A detailed clinical description of the child's observable symptoms and medical history. This is crucial for guiding our search toward specific biological pathways.
+*   **File:** `data/Challenge_Clinical_Phenotype_1.docx` (17 KB)
+*   **What it is:** A detailed clinical description of the child's observable symptoms and medical history (likely containing standardized HPO terms). This is crucial for guiding our search toward specific biological pathways.
 
 #### 2. Processed Genomic Data (VCF)
-*   **Files:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (and its index `.tbi`)
-*   **What it is:** A highly refined list of genetic differences. 
+*   **Files:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (301 MB) and its index `.tbi` (2.3 MB)
+*   **What it is:** A highly refined list of genetic differences. The variants in this file were processed and filtered using **GATK VariantFiltration (v4.2.4.0)** with standard hard filters (e.g., `QD < 2.0`, `MQ < 40.0`). The coordinates match the **GRCh38** reference genome assembly (using numeric contig notation like `1`, `2` rather than `chr1`).
 *   **How we use it:** **This is our primary dataset.** We will filter these millions of variants down to find the ultra-rare, pathogenic mutation causing the disease.
 
 #### 3. Raw Genomic Data (FASTQ)
-*   **Files:** `data/WGS_EX2312012_HGWCNDSX7_S16_L00[1-4]_R[1-2]_001.fastq.gz` (8 paired-end read files spanning 4 lanes)
-*   **What it is:** The raw, unaligned output directly from the DNA sequencing machine (~80GB). 
+*   **Files:** `data/WGS_EX2312012_HGWCNDSX7_S16_L00[1-4]_R[1-2]_001.fastq.gz` (8 paired-end read files spanning 4 lanes, totaling ~82 GB)
+*   **What it is:** The raw, unaligned output directly from an Illumina DNA sequencing machine. 
 *   **How we use it:** We will likely ignore this for Track 1, as the VCF has already done the heavy lifting of identifying the variants.
 
 ### The Output (Deliverables)
