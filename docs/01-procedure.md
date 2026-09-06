@@ -26,11 +26,15 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- | :--- |
 | `track1_step1_exp01-hpo_extraction.ipynb` | Extracts the HPO terms provided in the `Challenge_Clinical_Phenotype_1.docx` file into a list of IDs. | Done |
 
-### Step 2: VCF Annotation
-*   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF)
-*   **Action:** The current VCF only has coordinates. We must annotate each variant to understand its biological context.
-    *   *Analogy for Non-Experts:* Imagine the raw VCF file as a list of raw GPS coordinates indicating where something is altered (e.g., "Latitude X, Longitude Y has a pothole"). On its own, a raw coordinate doesn't tell you if the damage is in the middle of an empty desert or on a critical highway bridge. **Annotation** is like plugging those GPS coordinates into Google Maps. 
-    *   *Biological Context:* By overlaying this "map data," we gain the "biological context." We learn if the mutation landed inside an important gene (the "highway"), exactly which gene it is, and whether the mutation is a harmless spelling variation or a catastrophic error that completely destroys the gene's instructions.
+### Step 2: VCF Pre-Filtering & Annotation
+*   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, ~5M variants)
+*   **Action:** The current VCF only has coordinates. We must annotate each variant to understand its biological context. 
+*   **VCF Column Utilities (For Filtering & Verification):**
+    *   *Essential:* `CHROM`, `POS`, `REF`, `ALT` (The basic GPS coordinates).
+    *   *Useful for Pre-Filtering:* `QUAL`, `INFO_DP`, `FILTER` (The quality bouncers).
+    *   *Useful for Inheritance/Verification:* `FORMAT_GT` (Genotype, proves recessive vs dominant), `FORMAT_AD` (Allele Depths, proves variant is not an artifact).
+    *   *Useless/Redundant:* `INFO_MQ`, `INFO_FS`, `FORMAT_DP`, `FORMAT_GQ`, `ID` (handled implicitly by our QC bouncers or fetched later).
+
 *   **Data Added During Annotation:**
     *   **Gene Mapping:** Identifying exactly which gene (or regulatory region) the mutation is located in. Most of our DNA doesn't code for proteins, so we need to know if the mutation hit a critical "instruction manual" (a gene) or just empty space.
     *   **Consequence (Protein Effect):** Determining how the mutation physically alters the resulting protein. For example:
@@ -40,14 +44,10 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         *   *Splice-site:* Disrupts the delicate process of how the gene's instructions are cut and pasted together before being read.
     *   **Population Frequency:** Checking how common this mutation is in the general, healthy public (using massive databases like *gnomAD*). Since MVA is an ultra-rare disease, the mutation causing it should be extremely rare or completely novel. If 5% of healthy people have a mutation, it is harmless background noise, not the cause of MVA.
     *   **Pathogenicity Scores:** Using computational AI and algorithms (like CADD, REVEL, SIFT, or PolyPhen) that analyze the mutation and predict how damaging it is. These tools look at evolutionary conservation and protein structure to give a score indicating whether the mutation is likely "benign" or highly "pathogenic" (damaging).
-*   **Tools (Annotation Engines):**
-    *   **Ensembl VEP (Variant Effect Predictor):** The gold standard in bioinformatics. It is highly accurate and comprehensive, but running it locally requires downloading massive reference databases (hundreds of GBs) and setting up complex dependencies. It is best suited for large-scale, production clinical pipelines.
-    *   **SnpEff:** A fast, Java-based command-line tool. It is excellent for predicting the immediate consequence (e.g., missense, frameshift) but often requires additional plugins or secondary tools (like SnpSift) to append population frequencies (gnomAD) and pathogenicity scores (CADD/REVEL).
-    *   **MyVariant.info API (Python):** A REST API that aggregates data from ClinVar, gnomAD, dbNSFP, and Ensembl into a single JSON response. 
-    *   *Our Chosen Action:* Because this hackathon focuses on a single patient VCF and emphasizes reproducible Python pipelines without massive local database dependencies, we will programmatically fetch the annotations using the **MyVariant.info API (via Python)**. This allows us to query coordinates directly and retrieve all necessary biological context in a lightweight, easily parseable manner.
+*   **Tools (Annotation Engines):** **MyVariant.info API (Python)**, A REST API that aggregates data from ClinVar, gnomAD, dbNSFP, and Ensembl into a single JSON response. Because this hackathon focuses on a single patient VCF and emphasizes reproducible Python pipelines without massive local database dependencies, we will programmatically fetch the annotations using the **MyVariant.info API (via Python)**. This allows us to query coordinates directly and retrieve all necessary biological context in a lightweight, easily parseable manner.
 *   **Output:** 
     *   **Resulting DataFrame Structure:** The output of this annotation step will be a flattened Pandas DataFrame containing **every row (variant) from the original VCF**, but expanded with the newly fetched biological context as additional columns. The expected columns include:
-        *   `CHROM`, `POS`, `REF`, `ALT`: The original variant coordinates and alleles. These act as the fundamental "GPS coordinates" for the mutation. **Why we need it:** We use these to track exactly where we are in the genome and to perfectly match our findings back to the submission template format required for Track 1.
+        *   `CHROM`, `POS`, `REF`, `ALT`, `QUAL`, `FILTER`, `GT`: The original variant coordinates and alleles. These act as the fundamental "GPS coordinates" for the mutation. **Why we need it:** We use these to track exactly where we are in the genome and to perfectly match our findings back to the submission template format required for Track 1.
         *   `GENE_SYMBOL`: The name of the affected gene (e.g., *BUB1B*, *CEP57*). **Why we need it:** Most of human DNA does not contain instructions for making proteins. We need to know which specific "instruction manual" (gene) the mutation landed in so we can cross-reference it with the child's symptoms in Step 4.
         *   `CONSEQUENCE`: The most severe predicted functional impact (e.g., `missense_variant`, `frameshift_variant`). **Why we need it:** Not all mutations are equally destructive. This column tells us if the mutation just changes a single "letter" (missense) or completely scrambles the rest of the sentence (frameshift). We will use this in Step 3 to filter out "harmless" changes and keep only those predicted to severely break the protein.
         *   `GNOMAD_AF`: The overall allele frequency (AF) in the gnomAD database, which represents how common the mutation is in the healthy general public. **Why we need it:** MVA is an ultra-rare disease. If a mutation is found in 5% of healthy people, it is just harmless background noise. We will use this in Step 3 to aggressively filter out common mutations and keep only those that are extremely rare (< 0.1%).
