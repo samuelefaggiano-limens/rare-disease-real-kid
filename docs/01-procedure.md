@@ -26,48 +26,62 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- | :--- |
 | `track1_step1_exp01-hpo_extraction.ipynb` | Extracts the HPO terms provided in the `Challenge_Clinical_Phenotype_1.docx` file into a list of IDs. | Done |
 
-### Step 2: VCF Pre-Filtering & Annotation
-*   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, ~5M variants)
-*   **Action:** The current VCF only has coordinates. We must annotate each variant to understand its biological context. 
-*   **VCF Column Utilities (For Filtering & Verification):**
-    *   *Essential:* `CHROM`, `POS`, `REF`, `ALT` (The basic GPS coordinates).
-    *   *Useful for Pre-Filtering:* `QUAL`, `INFO_DP`, `FILTER` (The quality bouncers).
-    *   *Useful for Inheritance/Verification:* `FORMAT_GT` (Genotype, proves recessive vs dominant), `FORMAT_AD` (Allele Depths, proves variant is not an artifact).
-    *   *Useless/Redundant:* `INFO_MQ`, `INFO_FS`, `FORMAT_DP`, `FORMAT_GQ`, `ID` (handled implicitly by our QC bouncers or fetched later).
-
-*   **Data Added During Annotation:**
-    *   **Gene Mapping:** Identifying exactly which gene (or regulatory region) the mutation is located in. Most of our DNA doesn't code for proteins, so we need to know if the mutation hit a critical "instruction manual" (a gene) or just empty space.
-    *   **Consequence (Protein Effect):** Determining how the mutation physically alters the resulting protein. For example:
-        *   *Missense:* Changes a single "word" (amino acid) in the instructions, which might mildly or severely affect the protein's shape.
-        *   *Nonsense:* Introduces an abrupt "stop sign," resulting in a truncated, usually useless protein.
-        *   *Frameshift:* Inserts or deletes letters in a way that scrambles the entire rest of the sentence (highly destructive).
-        *   *Splice-site:* Disrupts the delicate process of how the gene's instructions are cut and pasted together before being read.
-    *   **Population Frequency:** Checking how common this mutation is in the general, healthy public (using massive databases like *gnomAD*). Since MVA is an ultra-rare disease, the mutation causing it should be extremely rare or completely novel. If 5% of healthy people have a mutation, it is harmless background noise, not the cause of MVA.
-    *   **Pathogenicity Scores:** Using computational AI and algorithms (like CADD, REVEL, SIFT, or PolyPhen) that analyze the mutation and predict how damaging it is. These tools look at evolutionary conservation and protein structure to give a score indicating whether the mutation is likely "benign" or highly "pathogenic" (damaging).
-*   **Tools (Annotation Engines):** **MyVariant.info API (Python)**, A REST API that aggregates data from ClinVar, gnomAD, dbNSFP, and Ensembl into a single JSON response. Because this hackathon focuses on a single patient VCF and emphasizes reproducible Python pipelines without massive local database dependencies, we will programmatically fetch the annotations using the **MyVariant.info API (via Python)**. This allows us to query coordinates directly and retrieve all necessary biological context in a lightweight, easily parseable manner.
-*   **Output:** 
-    *   **Resulting DataFrame Structure:** The output of this annotation step will be a flattened Pandas DataFrame containing **every row (variant) from the original VCF**, but expanded with the newly fetched biological context as additional columns. The expected columns include:
-        *   `CHROM`, `POS`, `REF`, `ALT`, `QUAL`, `FILTER`, `GT`: The original variant coordinates and alleles. These act as the fundamental "GPS coordinates" for the mutation. **Why we need it:** We use these to track exactly where we are in the genome and to perfectly match our findings back to the submission template format required for Track 1.
-        *   `GENE_SYMBOL`: The name of the affected gene (e.g., *BUB1B*, *CEP57*). **Why we need it:** Most of human DNA does not contain instructions for making proteins. We need to know which specific "instruction manual" (gene) the mutation landed in so we can cross-reference it with the child's symptoms in Step 4.
-        *   `CONSEQUENCE`: The most severe predicted functional impact (e.g., `missense_variant`, `frameshift_variant`). **Why we need it:** Not all mutations are equally destructive. This column tells us if the mutation just changes a single "letter" (missense) or completely scrambles the rest of the sentence (frameshift). We will use this in Step 3 to filter out "harmless" changes and keep only those predicted to severely break the protein.
-        *   `GNOMAD_AF`: The overall allele frequency (AF) in the gnomAD database, which represents how common the mutation is in the healthy general public. **Why we need it:** MVA is an ultra-rare disease. If a mutation is found in 5% of healthy people, it is just harmless background noise. We will use this in Step 3 to aggressively filter out common mutations and keep only those that are extremely rare (< 0.1%).
-        *   `CADD_PHRED` & `REVEL`: Numeric pathogenicity prediction scores generated by advanced computational algorithms. **Why we need it:** These AI-driven scores estimate how "damaging" a mutation is to the resulting protein's structure or function. We will use these in Step 3 and Step 5 to prioritize mutations that the algorithms flag as highly destructive.
-        *   `CLINVAR_SIG`: Known clinical significance, if previously reported in ClinVar (a public archive of human genetic variants and their relationship to disease). **Why we need it:** If this exact mutation has already been seen in another patient and classified as "Pathogenic" by geneticists, it strongly supports our case. Conversely, if it is classified as "Benign," we can likely ignore it.
-        *   `dbSNP_RSID` (`dbsnp.rsid`): The standard identifier for the variant (like a social security number, often formatted as `rs...`). **Why we need it:** Having a standard ID makes it much easier to quickly search PubMed, Google Scholar, or clinical databases for existing literature, which is highly useful later on for Track 2 (Drug Repurposing).
-        *   `CLINVAR_PHENOTYPE` (`clinvar.rcv.conditions.name`): The name of the specific disease associated with this variant in the ClinVar database. **Why we need it:** If the variant's condition is literally listed as "Mosaic variegated aneuploidy", it's an immediate smoking gun for our pipeline. 
-        *   `CONSERVATION_SCORE` (e.g., `dbnsfp.gerp++_rs`): Measures how unchanged this specific piece of DNA has been across millions of years of evolution (across species like mice, dogs, fish). **Why we need it:** If a genetic coordinate hasn't changed across 100 vertebrate species, it implies it is biologically critical. A mutation there is highly likely to be pathogenic (bad).
-        *   `SPLICE_SCORE` (e.g., `dbnsfp.ada_score`): Predicts if the mutation will disrupt the cell's ability to "splice" (cut and paste) the gene's instructions together. **Why we need it:** These help catch sneaky mutations that don't directly change an amino acid word but mess up the overall sentence structure of the gene, which is a frequent cause of rare genetic diseases.
-        *   `CONSENSUS_PATHOGENICITY` (`dbnsfp.sift.pred`, `dbnsfp.polyphen.pred`, `dbnsfp.mutationtaster.pred`): Pathogenicity predictions from other independent models (SIFT, PolyPhen, MutationTaster). **Why we need it:** While CADD and REVEL are excellent, relying on a single algorithm can lead to false positives. By checking multiple tools, if they *all* agree a mutation is "Damaging," we can trust the prediction much more.
-        *   `PUTATIVE_IMPACT` (`snpeff.ann.putative_impact`): Groups all mutation consequences into four categories: `HIGH`, `MODERATE`, `LOW`, and `MODIFIER`. **Why we need it:** Simplifies filtering in Step 3. Instead of writing complex rules for 30 different consequence strings, we can drop all variants where impact is 'LOW' or 'MODIFIER'.
-        *   `GNOMAD_HOMOZYGOUS_COUNT` (`gnomad_genome.hom.hom` / `gnomad_exome.hom.hom`): The exact number of healthy individuals in gnomAD who possess two copies (homozygous) of this mutation. **Why we need it:** MVA is an ultra-rare, severe pediatric disease. If healthy adults in gnomAD are homozygous for a mutation, it cannot be the cause of our patient's disease under Scenario 1 (Homozygous Recessive).
-        *   `PROTEIN_DOMAIN` (`dbnsfp.interpro_domain`): Indicates if the mutation lands inside a known, critical working part of the protein (like a "kinase domain"). **Why we need it:** Crucial for Track 2 (Drug Repurposing). Knowing exactly which part of the protein broke helps us identify what kind of biological activity is missing and what kind of drug could compensate.
+### Step 2: VCF Pre-Filtering
+*   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, 5,012,204 variants)
+*   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation.
+*   **Filter 1: Intrinsic QC Filters (Zero external downloads)**
+    *   **What it does:** Relies on the sequencing machine's own confidence scores present in the VCF file.
+    *   **Implementation details (based on `track1_step0_exp01-data_exploration.ipynb`):**
+        *   **The PASS Filter:** The `FILTER` column contains flags for unreliable variants (e.g., `LowQual`, `MQ40`). We keep only rows where `FILTER` is missing (represented as `NaN` or `.` in pandas/cyvcf2) or `PASS`.
+        *   **Genotype Quality (GQ) & Sample-Level Depth (DP):** Instead of using aggregate metrics like `INFO_DP` or `QUAL` which can be unreliable in difficult mapping regions, we prioritize sample-level confidence. We use `FORMAT_GQ` to measure the confidence that the specific 0/1 or 1/1 call for this child is correct, and `FORMAT_DP` to ensure the sequencer read this specific coordinate enough times *in this patient's sample*. We keep only rows where `FORMAT_GQ >= 20` (99% confidence) and `FORMAT_DP >= 10`.
+    *   **Estimated Impact:** Reduces the 5,012,204 variants down to about 3.5 to 4 million. This is ultra-safe and clears the garbage, but the file is still too big for an API.
+*   **Filter 2: The "Common Variant" Subtraction (Lightweight Extrinsic)**
+    *   **What it does:** Since MVA is an ultra-rare pediatric disease, the causal mutation cannot be common in the healthy public. We use a small "blacklist" database to perform a rapid subtraction.
+    *   **Implementation details:**
+        *   **Dataset:** dbSNP Common or gnomAD Common VCFs (usually just 1-2 GB).
+        *   **Threshold:** We filter out variants with a frequency >0.5% (or 0.1%). *Crucially, we do not use a strict 1% cutoff.* As seen in literature (e.g., Cho et al. 2025 on MOCS2, see 00-references.md file), causal recessive variants can reach >3% in specific subpopulations due to founder effects. A more conservative threshold prevents accidentally dropping localized causal mutations.
+        *   **Tools:** We must perform *allele-aware* subtraction using tools like `bcftools isec -c all` or `slivar`. We must explicitly avoid coordinate-only tools like `bedtools intersect`, which would erroneously delete a novel pathogenic mutation if it simply shares a coordinate with a common harmless variant.
+    *   **Estimated Impact:** Humans share most of their variation. This single, rapid step will safely strip away about 90-95% of the VCF, reducing the ~4 million high-quality variants down to roughly 100,000 to 200,000 rare/novel variants across the entire genome (coding and non-coding).
 *   **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
 | | | |
 
-### Step 3: Variant Filtering (The Funnel)
+### Step 3: VCF Annotation
+*   **Input:** Pre-filtered VCF (approx. 100,000 to 200,000 rare variants).
+*   **Action:** We must annotate each surviving rare variant to understand its biological context.
+*   **VCF Column Utilities (For Filtering & Verification):**
+    *   *Essential:* `CHROM`, `POS`, `REF`, `ALT` (The basic GPS coordinates).
+    *   *Useful for Pre-Filtering:* `FORMAT_GQ`, `FORMAT_DP`, `FILTER` (The quality bouncers).
+    *   *Useful for Inheritance/Verification:* `FORMAT_GT` (Genotype, proves recessive vs dominant), `FORMAT_AD` (Allele Depths, proves variant is not an artifact).
+
+*   **Data Added During Annotation:**
+    *   **Gene Mapping:** Identifying exactly which gene (or regulatory region) the mutation is located in.
+    *   **Consequence (Protein Effect):** Determining how the mutation physically alters the resulting protein (e.g., *Missense*, *Nonsense*, *Frameshift*, *Splice-site*).
+    *   **Population Frequency:** Checking how common this mutation is in the general, healthy public (using massive databases like *gnomAD*).
+    *   **Pathogenicity Scores:** Using computational AI and algorithms (like CADD, REVEL, SIFT, or PolyPhen) that analyze the mutation and predict how damaging it is.
+*   **Tools (Annotation Engines):** We will use a "live" functional annotator like **SnpEff** or **Ensembl VEP**. 
+    *   *Why not an API?* REST APIs (like `MyVariant.info`) act as lookup tables. If the child has a *de novo* completely novel mutation that has never been seen in any human before, it won't be in the API's database. The API would return empty data, causing the pipeline to blindly drop the variant later because it lacks a "Consequence". `SnpEff` and `VEP` use a reference transcriptome to *calculate* the biological consequence on-the-fly from the `REF`/`ALT` letters, guaranteeing 100% coverage even for entirely novel mutations. 
+    *   APIs like `MyVariant.info` can still be used as a *secondary* step to pull down specific pre-calculated pathogenicity scores (like REVEL or CADD) if local databases are too large to host locally.
+*   **Output:** 
+    *   **Resulting DataFrame Structure:** The output of this annotation step will be a flattened Pandas DataFrame containing **every row (variant) from the pre-filtered VCF**, expanded with the newly fetched biological context. The expected columns include:
+        *   `CHROM`, `POS`, `REF`, `ALT`, `FORMAT_GQ`, `FILTER`, `FORMAT_GT`: The original variant coordinates and alleles. We use these to track exactly where we are in the genome and to perfectly match our findings back to the submission template format required for Track 1.
+        *   `GENE_SYMBOL`: The name of the affected gene (e.g., *BUB1B*, *CEP57*).
+        *   `CONSEQUENCE`: The most severe predicted functional impact (e.g., `missense_variant`, `frameshift_variant`). We will use this in Step 4 to filter out "harmless" changes and keep only those predicted to severely break the protein.
+        *   `GNOMAD_AF`: The overall allele frequency (AF) in the gnomAD database. We will use this in Step 4 to aggressively filter out common mutations and keep only those that are extremely rare (< 0.5%).
+        *   `CADD_PHRED` & `REVEL`: Numeric pathogenicity prediction scores generated by advanced computational algorithms. We will use these in Step 4 and Step 6 to prioritize mutations that the algorithms flag as highly destructive.
+        *   `CLINVAR_SIG`: Known clinical significance, if previously reported in ClinVar.
+        *   `dbSNP_RSID`: The standard identifier for the variant (like a social security number, often formatted as `rs...`). Useful for quickly searching PubMed or Google Scholar later on for Track 2.
+        *   `CONSERVATION_SCORE`: Measures how unchanged this specific piece of DNA has been across millions of years of evolution.
+        *   `PUTATIVE_IMPACT`: Groups all mutation consequences into categories like `HIGH`, `MODERATE`, `LOW`, and `MODIFIER` (e.g., via `snpeff`). Simplifies filtering in Step 4.
+*   **Experiments:**
+
+| Notebook | Description | Results |
+| :--- | :--- | :--- |
+| | | |
+
+### Step 4: Variant Filtering (The Funnel)
 *   **Action:** Apply a series of strict filters to reduce the millions of variants down to a few dozen candidates.
 *   **Filter 1: Quality Control (Removing "Typos").** 
     *   *How/Why:* DNA sequencing machines aren't perfect; they make reading errors. This filter ensures we only keep mutations that the machine is highly confident are real, throwing out low-quality reads.
@@ -86,12 +100,12 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- | :--- |
 | | | |
 
-### Step 4: Gene Prioritization & Phenotype Matching
+### Step 5: Gene Prioritization & Phenotype Matching
 *   **Action:** We now have a small list of rare, protein-altering mutations. We cross-reference the genes containing these mutations with the HPO terms generated in Step 1.
 *   **Matching:** We compare the patient's extracted HPO terms against established "Gene-to-Phenotype" databases (like OMIM or the HPO database itself). These databases contain lists of symptoms (HPO terms) that are scientifically proven to occur when specific genes are mutated. By calculating the overlap (or semantic similarity) between the child's symptoms and a gene's known disease profile, we can rank the candidate genes.
     *   *Example of Cross-referencing:* 
         1.  **Patient Data:** The clinical text (Step 1) gives us `HP:0000252` (Microcephaly) and `HP:0001250` (Seizures).
-        2.  **Variant Data:** Step 3 filtering leaves us with rare mutations in three candidate genes: *Gene A*, *Gene B*, and *BUB1B*.
+        2.  **Variant Data:** Step 4 filtering leaves us with rare mutations in three candidate genes: *Gene A*, *Gene B*, and *BUB1B*.
         3.  **Database Lookup:** We query the HPO database for these three genes.
             *   *Gene A* is only known to cause `HP:0010442` (Polydactyly - extra fingers). *Match: 0% overlap*.
             *   *Gene B* is known to cause `HP:0000365` (Deafness). *Match: 0% overlap*.
@@ -105,7 +119,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- | :--- |
 | | | |
 
-### Step 5: Ranking and Submission
+### Step 6: Ranking and Submission
 *   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`) between 0 and 1 to each candidate variant. 
     *   *What is EPCR?* This is not a standard biological metric; it is a custom confidence score we must engineer for this hackathon. It represents our pipeline's belief that a specific variant is the true cause of the disease.
     *   *How we calculate it:* We will build a scoring function (either a weighted heuristic formula or an ML model) that combines the variant's features into a single score. For example, a variant gets a higher `epcr` if it has:

@@ -24,6 +24,10 @@ This document maintains foundational literature on Mosaic Variegated Aneuploidy 
 **Link:** https://pubmed.ncbi.nlm.nih.gov/37796616/
 **Abstract:** MAD2L1BP-encoded p31comet mediates Trip13-dependent disassembly of Mad2- and Rev7-containing complexes and, through this antagonism, promotes timely spindle assembly checkpoint (SAC) silencing, faithful chromosome segregation, insulin signaling, and homology-directed repair (HDR) of DNA double-strand breaks. We identified a homozygous MAD2L1BP nonsense variant, R253*, in 2 siblings with microcephaly, epileptic encephalopathy, and juvenile granulosa cell tumors of ovary and testis. Patient-derived cells exhibited high-grade mosaic variegated aneuploidy, slowed-down proliferation, and instability of truncated p31comet mRNA and protein. Thus, human mutations of p31comet are linked to aneuploidy and tumor predisposition.
 
+#### A prevalent MOCS2 variant in the Roma population is associated with a novel mild form of molybdenum cofactor deficiency.
+**Link:** https://pubmed.ncbi.nlm.nih.gov/40707723/
+**Abstract:** Xanthinurias are rare inherited disorders... Considering the rarity of the condition and recessive inheritance, 34 candidate variants were identified after filtering out allele frequency threshold in non-Finnish Europeans. An ultra-rare MOCS2 variant rs776441627... segregated with the disease in all five patients. The variant has an allele frequency of 3.6% in a Roma population control group. *(Key insight for Track 1: Causal recessive variants can reach >3% in specific subpopulations due to founder effects. When applying "common variant" population filters, using a strict 1% cutoff globally can erroneously remove pathogenic founder mutations. A safer threshold like >0.5% or population-specific maximums is recommended).*
+
 ---
 
 ## Disease Mechanisms & Potential Druggable Pathways (Track 2)
