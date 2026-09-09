@@ -45,13 +45,19 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 ### Step 2: VCF Pre-Filtering
 *   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, 5,012,204 variants)
 *   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation. This single, rapid step will safely strip away about 90-95% of the VCF leaving only rare/novel variants across the entire genome (coding and non-coding).
-*   **Filter 1: Intrinsic QC Filters (Zero external downloads)**
+*   **Filter 1: Unified Intrinsic Quality Control (QC)**
+* **What it does:** Combines all sequencer-derived confidence metrics into a single, efficient gatekeeper step. This eliminates low-confidence artifacts and redundant code operations before applying external filters.
+* **Implementation details:**
+  * **VCF Columns:** We evaluate `FILTER` , `FORMAT_DP` , and `FORMAT_GQ` simultaneously.
+  * **Threshold:** We enforce that `FILTER` is either `PASS` or missing (.), `FORMAT_DP >= 10`, and `FORMAT_GQ >= 20`
+  * **Action:** Any variant failing to meet all three of these minimum criteria in a single programmatic pass is immediately dropped.
+*   **Filter 2: Intrinsic QC Filters (Zero external downloads)**
     *   **What it does:** Relies on the sequencing machine's own confidence scores present in the VCF file.
     *   **Implementation details (based on `track1_step0_exp01-data_exploration.ipynb`):**
         *   **The PASS Filter:** The `FILTER` column contains flags for unreliable variants (e.g., `LowQual`, `MQ40`). We keep only rows where `FILTER` is missing (represented as `NaN` or `.` in pandas/cyvcf2) or `PASS`.
         *   **Genotype Quality (GQ) & Sample-Level Depth (DP):** Instead of using aggregate metrics like `INFO_DP` or `QUAL` which can be unreliable in difficult mapping regions, we prioritize sample-level confidence. We use `FORMAT_GQ` to measure the confidence that the specific 0/1 or 1/1 call for this child is correct, and `FORMAT_DP` to ensure the sequencer read this specific coordinate enough times *in this patient's sample*. We keep only rows where `FORMAT_GQ >= 20` (99% confidence) and `FORMAT_DP >= 10`.
         *   **Output Format:** The output of this stage must be saved as a standard VCF (e.g., `track1_step2_intrinsic_qc.vcf.gz`), injecting any custom metrics (like Allelic Balance) as VCF `INFO` tags. Outputting a CSV here breaks compatibility with the bioinformatics tools required for Filter 2 and Step 3.
-*   **Filter 2: The "Common Variant" Subtraction (Lightweight Extrinsic)**
+*   **Filter 3: The "Common Variant" Subtraction (Lightweight Extrinsic)**
     *   **What it does:** Since MVA is an ultra-rare pediatric disease, the causal mutation cannot be common in the healthy public. We use a small "blacklist" database to perform a rapid subtraction.
     *   **Implementation details:**
         *   **Dataset (The Lightweight Blacklist):** We use **dbSNP Common (GRCh38)** (`common_all_20180418.vcf.gz`), which is a curated ~1.5 GB single file containing known common human variants (MAF >= 1% in at least one major population). This avoids the extreme computational overhead of streaming hundreds of gigabytes of gnomAD VCFs.
@@ -82,11 +88,17 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   **Clinvar review status (`clinvar.rcv.review_status`):** Indicates the level of evidence or review in ClinVar (conceptually equivalent to their 0 to 4-star rating system). Why we need it: A variant labeled as "Pathogenic" with zero stars (single submitter, no criteria provided) is much less reliable than one reviewed by an expert panel. This helps us filter out low-confidence clinical assertions.
     *   **Loftool score (`dbnsfp.loftool`):** A score reflecting how intolerant the affected gene is to Loss-of-Function (LoF) mutations. Why we need it: It tells us if the gene can tolerate being broken. If a gene is highly intolerant to LoF, a highly destructive mutation (like a frameshift or nonsense) located there is a very strong candidate for causing severe disease.
 *   **Tools (Annotation Engines):** We will use a "live" functional annotator like **SnpEff** or **Ensembl VEP**. 
-    *   *Why not an API?* REST APIs (like `MyVariant.info`) act as lookup tables. If the child has a *de novo* completely novel mutation that has never been seen in any human before, it won't be in the API's database. The API would return empty data, causing the pipeline to blindly drop the variant later because it lacks a "Consequence". `SnpEff` and `VEP` use a reference transcriptome to *calculate* the biological consequence on-the-fly from the `REF`/`ALT` letters, guaranteeing 100% coverage even for entirely novel mutations. 
+    *   **Why not an API?** REST APIs (like `MyVariant.info`) act as lookup tables. If the child has a *de novo* completely novel mutation that has never been seen in any human before, it won't be in the API's database. The API would return empty data, causing the pipeline to blindly drop the variant later because it lacks a "Consequence". `SnpEff` and `VEP` use a reference transcriptome to *calculate* the biological consequence on-the-fly from the `REF`/`ALT` letters, guaranteeing 100% coverage even for entirely novel mutations. 
     *   **SnpSift:** We will use `SnpSift` alongside `SnpEff` to seamlessly inject the additional ClinVar and dbNSFP metrics (OMIM, LoFTool) directly into the VCF file.
     *   APIs like `MyVariant.info` can still be used as a *secondary* step to pull down specific pre-calculated pathogenicity scores (like REVEL or CADD) if local databases are too large to host locally.
+
+*   **Data Transformation (Pre-Output): Canonical Transcript Extraction**
+    *   **What it does:** Prevents "transcript explosion." Annotation tools (SnpEff/VEP) evaluate mutations against all possible gene transcripts, which can duplicate a single variant into multiple rows. This step ensures a clean 1:1 variant-to-row ratio in our output DataFrame.
+    *   **Implementation details (Configuration):** We configure SnpEff to flag the canonical transcript or programmatically filter the output during the DataFrame creation.
+    *   **Action:** We isolate and retain strictly the "Most Severe Consequence" (e.g., prioritizing a *Nonsense* impact over a *Missense* impact on a minor isoform) for each unique genomic coordinate (`CHROM`, `POS`).
+
 *   **Output:** 
-    *   **Resulting DataFrame Structure:** The final output of this annotation step (after all tools run) will be a flattened Pandas DataFrame containing **every row (variant) from the pre-filtered VCF**, expanded with the newly fetched biological context. The expected columns include:
+    *   **Resulting DataFrame Structure:** The final output of this annotation step (after all tools run and the canonical extraction is applied) will be a flattened Pandas DataFrame containing **every row (variant) from the pre-filtered VCF**, expanded with the newly fetched biological context. The expected columns include:
         *   `CHROM`, `POS`, `REF`, `ALT`, `FORMAT_GQ`, `FILTER`, `FORMAT_GT`: The original variant coordinates and alleles. We use these to track exactly where we are in the genome and to perfectly match our findings back to the submission template format required for Track 1.
         *   `GENE_SYMBOL`: The name of the affected gene (e.g., *BUB1B*, *CEP57*).
         *   `CONSEQUENCE`: The most severe predicted functional impact (e.g., `missense_variant`, `frameshift_variant`). We will use this in Step 4 to filter out "harmless" changes and keep only those predicted to severely break the protein.
@@ -96,6 +108,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         *   `dbSNP_RSID`: The standard identifier for the variant (like a social security number, often formatted as `rs...`). Useful for quickly searching PubMed or Google Scholar later on for Track 2.
         *   `CONSERVATION_SCORE`: Measures how unchanged this specific piece of DNA has been across millions of years of evolution.
         *   `PUTATIVE_IMPACT`, `OMIM_PHENOTYPE`, `CLINVAR_REVIEW_STATUS`, `LOFTOOL_SCORE`.
+
 *   **Experiments:**
 
 | Notebook | Description | Results |
