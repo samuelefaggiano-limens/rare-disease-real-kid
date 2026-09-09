@@ -50,21 +50,19 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   **Implementation details (based on `track1_step0_exp01-data_exploration.ipynb`):**
         *   **The PASS Filter:** The `FILTER` column contains flags for unreliable variants (e.g., `LowQual`, `MQ40`). We keep only rows where `FILTER` is missing (represented as `NaN` or `.` in pandas/cyvcf2) or `PASS`.
         *   **Genotype Quality (GQ) & Sample-Level Depth (DP):** Instead of using aggregate metrics like `INFO_DP` or `QUAL` which can be unreliable in difficult mapping regions, we prioritize sample-level confidence. We use `FORMAT_GQ` to measure the confidence that the specific 0/1 or 1/1 call for this child is correct, and `FORMAT_DP` to ensure the sequencer read this specific coordinate enough times *in this patient's sample*. We keep only rows where `FORMAT_GQ >= 20` (99% confidence) and `FORMAT_DP >= 10`.
+        *   **Output Format:** The output of this stage must be saved as a standard VCF (e.g., `track1_step2_intrinsic_qc.vcf.gz`), injecting any custom metrics (like Allelic Balance) as VCF `INFO` tags. Outputting a CSV here breaks compatibility with the bioinformatics tools required for Filter 2 and Step 3.
 *   **Filter 2: The "Common Variant" Subtraction (Lightweight Extrinsic)**
     *   **What it does:** Since MVA is an ultra-rare pediatric disease, the causal mutation cannot be common in the healthy public. We use a small "blacklist" database to perform a rapid subtraction.
     *   **Implementation details:**
-        *   **Dataset:** dbSNP Common or gnomAD Common VCFs (usually just 1-2 GB).
-        *   **Threshold:** We filter out variants with a frequency >0.5% (or 0.1%). *Crucially, we do not use a strict 1% cutoff.* As seen in literature (e.g., Cho et al. 2025 on MOCS2, see 00-references.md file), causal recessive variants can reach >3% in specific subpopulations due to founder effects. A more conservative threshold prevents accidentally dropping localized causal mutations.
-        *   **Tools:** We must perform *allele-aware* subtraction using tools like `bcftools isec -c all` or `slivar`. We must explicitly avoid coordinate-only tools like `bedtools intersect`, which would erroneously delete a novel pathogenic mutation if it simply shares a coordinate with a common harmless variant.
-*   **Additional Metrics for Filtering/Prioritization:**
-    *   **OMIM_PHENOTYPE (`dbnsfp.omim_phenotype`):** Directly links the mutated gene to known inherited syndromes in the Online Mendelian Inheritance in Man (OMIM) database. Why we need it: If the affected gene is already associated with terms like "Aneuploidy" or "mitotic spindle defects" in OMIM, it immediately becomes a top-priority candidate for our MVA patient.
-    *   **CLINVAR_REVIEW_STATUS (`clinvar.rcv.review_status`):** Indicates the level of evidence or review in ClinVar (conceptually equivalent to their 0 to 4-star rating system). Why we need it: A variant labeled as "Pathogenic" with zero stars (single submitter, no criteria provided) is much less reliable than one reviewed by an expert panel. This helps us filter out low-confidence clinical assertions.
-    *   **LOFTOOL_SCORE (`dbnsfp.loftool`):** A score reflecting how intolerant the affected gene is to Loss-of-Function (LoF) mutations. Why we need it: It tells us if the gene can tolerate being broken. If a gene is highly intolerant to LoF, a highly destructive mutation (like a frameshift or nonsense) located there is a very strong candidate for causing severe disease.
+        *   **Dataset (The Lightweight Blacklist):** We use **dbSNP Common (GRCh38)** (`common_all_20180418.vcf.gz`), which is a curated ~1.5 GB single file containing known common human variants (MAF >= 1% in at least one major population). This avoids the extreme computational overhead of streaming hundreds of gigabytes of gnomAD VCFs.
+        *   **Chromosome Harmonization:** dbSNP Common natively uses numeric contigs (e.g., `1`, `2`), perfectly matching our patient's GRCh38 VCF.
+        *   **Threshold:** dbSNP Common implicitly acts as a ~1% MAF filter. While slightly higher than a strict 0.5% cutoff, literature shows (e.g., Cho et al. 2025 on MOCS2) that recessive founder effects can push pathogenic alleles >3% in subpopulations, meaning a 1% threshold is actually a very safe boundary to prevent accidentally deleting a causal variant.
+        *   **Tools:** We implement an *allele-aware* subtraction using `cyvcf2` directly in Python. By iterating over our surviving rare variants and performing a fast exact-match index lookup into the dbSNP VCF, we safely drop any variant that exactly matches both coordinates and alleles of a common variant, leaving us with our final "Rare" VCF.
 *   **Experiments:**
 
-| Notebook | Description | Results                                                                                                                                                                                                                                                                                                                                                       |
-| :--- | :--- |:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters (PASS, GQ>=20, DP>=10, Het AB 0.3-0.7) and outputs a structured Pandas CSV file. | Processed 5M variants -> 2.64M variants surviving (52.8%) saved directly to `track1_step2_intrinsic_qc.csv` after filter 1. |
+| Notebook | Description | Results |
+| :--- | :--- | :--- |
+| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38. | Processed 5M variants -> 2.64M survived intrinsic QC. Subtraction dropped 2.26M common variants. Final result: 380,292 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz`. |
 
 ### Step 3: VCF Annotation
 *   **Input:** Pre-filtered VCF (approx. 100,000 to 200,000 rare variants).
@@ -79,11 +77,16 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   **Consequence (Protein Effect):** Determining how the mutation physically alters the resulting protein (e.g., *Missense*, *Nonsense*, *Frameshift*, *Splice-site*).
     *   **Population Frequency:** Checking how common this mutation is in the general, healthy public (using massive databases like *gnomAD*).
     *   **Pathogenicity Scores:** Using computational AI and algorithms (like CADD, REVEL, SIFT, or PolyPhen) that analyze the mutation and predict how damaging it is.
+    *   **PUTATIVE_IMPACT:** Groups all mutation consequences into categories like `HIGH`, `MODERATE`, `LOW`, and `MODIFIER` (e.g., via `snpeff`). Simplifies filtering in Step 4.
+    *   **OMIM_PHENOTYPE (`dbnsfp.omim_phenotype`):** Directly links the mutated gene to known inherited syndromes in the Online Mendelian Inheritance in Man (OMIM) database. Why we need it: If the affected gene is already associated with terms like "Aneuploidy" or "mitotic spindle defects" in OMIM, it immediately becomes a top-priority candidate for our MVA patient.
+    *   **CLINVAR_REVIEW_STATUS (`clinvar.rcv.review_status`):** Indicates the level of evidence or review in ClinVar (conceptually equivalent to their 0 to 4-star rating system). Why we need it: A variant labeled as "Pathogenic" with zero stars (single submitter, no criteria provided) is much less reliable than one reviewed by an expert panel. This helps us filter out low-confidence clinical assertions.
+    *   **LOFTOOL_SCORE (`dbnsfp.loftool`):** A score reflecting how intolerant the affected gene is to Loss-of-Function (LoF) mutations. Why we need it: It tells us if the gene can tolerate being broken. If a gene is highly intolerant to LoF, a highly destructive mutation (like a frameshift or nonsense) located there is a very strong candidate for causing severe disease.
 *   **Tools (Annotation Engines):** We will use a "live" functional annotator like **SnpEff** or **Ensembl VEP**. 
     *   *Why not an API?* REST APIs (like `MyVariant.info`) act as lookup tables. If the child has a *de novo* completely novel mutation that has never been seen in any human before, it won't be in the API's database. The API would return empty data, causing the pipeline to blindly drop the variant later because it lacks a "Consequence". `SnpEff` and `VEP` use a reference transcriptome to *calculate* the biological consequence on-the-fly from the `REF`/`ALT` letters, guaranteeing 100% coverage even for entirely novel mutations. 
+    *   **SnpSift:** We will use `SnpSift` alongside `SnpEff` to seamlessly inject the additional ClinVar and dbNSFP metrics (OMIM, LoFTool) directly into the VCF file.
     *   APIs like `MyVariant.info` can still be used as a *secondary* step to pull down specific pre-calculated pathogenicity scores (like REVEL or CADD) if local databases are too large to host locally.
 *   **Output:** 
-    *   **Resulting DataFrame Structure:** The output of this annotation step will be a flattened Pandas DataFrame containing **every row (variant) from the pre-filtered VCF**, expanded with the newly fetched biological context. The expected columns include:
+    *   **Resulting DataFrame Structure:** The final output of this annotation step (after all tools run) will be a flattened Pandas DataFrame containing **every row (variant) from the pre-filtered VCF**, expanded with the newly fetched biological context. The expected columns include:
         *   `CHROM`, `POS`, `REF`, `ALT`, `FORMAT_GQ`, `FILTER`, `FORMAT_GT`: The original variant coordinates and alleles. We use these to track exactly where we are in the genome and to perfectly match our findings back to the submission template format required for Track 1.
         *   `GENE_SYMBOL`: The name of the affected gene (e.g., *BUB1B*, *CEP57*).
         *   `CONSEQUENCE`: The most severe predicted functional impact (e.g., `missense_variant`, `frameshift_variant`). We will use this in Step 4 to filter out "harmless" changes and keep only those predicted to severely break the protein.
@@ -92,7 +95,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         *   `CLINVAR_SIG`: Known clinical significance, if previously reported in ClinVar.
         *   `dbSNP_RSID`: The standard identifier for the variant (like a social security number, often formatted as `rs...`). Useful for quickly searching PubMed or Google Scholar later on for Track 2.
         *   `CONSERVATION_SCORE`: Measures how unchanged this specific piece of DNA has been across millions of years of evolution.
-        *   `PUTATIVE_IMPACT`: Groups all mutation consequences into categories like `HIGH`, `MODERATE`, `LOW`, and `MODIFIER` (e.g., via `snpeff`). Simplifies filtering in Step 4.
+        *   `PUTATIVE_IMPACT`, `OMIM_PHENOTYPE`, `CLINVAR_REVIEW_STATUS`, `LOFTOOL_SCORE`.
 *   **Experiments:**
 
 | Notebook | Description | Results |
