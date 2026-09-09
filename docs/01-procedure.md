@@ -9,6 +9,22 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 *   **Input:** All provided data files in `data/` (Clinical documents and VCF).
 *   **Action:** Perform initial exploration to understand data structures, quality, and basic statistics before setting up the main pipeline.
 *   **Tools:** Python, pandas, Jupyter Notebooks.
+*   **VCF Column Definitions (Understanding the Dataset):**
+    *   `CHROM`: Chromosome where the variant is located (e.g., '1', 'X').
+    *   `POS`: The 1-based base position of the variant on the chromosome.
+    *   `ID`: Variant identifier, usually a dbSNP rsID (e.g., 'rs123456'). Represented as '.' if unknown.
+    *   `REF`: Reference allele (the DNA sequence found in the reference genome).
+    *   `ALT`: Alternate allele (the DNA sequence found in the patient's genome).
+    *   `QUAL`: Phred-scaled quality score for the assertion that an alternate allele exists.
+    *   `FILTER`: Indicates if the variant passed quality filters ('PASS') or failed specific checks (e.g., 'LowQual', 'MQ40').
+    *   `INFO_DP`: Combined read depth of coverage across all samples (from the INFO field).
+    *   `INFO_MQ`: Root Mean Square (RMS) mapping quality of all reads spanning the variant.
+    *   `INFO_FS`: Phred-scaled p-value using Fisher's exact test to detect strand bias (whether reads inappropriately favor one DNA strand over the other).
+    *   `FORMAT_GT`: Genotype for the patient (e.g., '0/1' for heterozygous, '1/1' for homozygous alternate).
+    *   `FORMAT_DP`: Read depth specifically for this patient's sample.
+    *   `FORMAT_GQ`: Genotype quality (confidence in the specific GT call).
+    *   `FORMAT_AD_REF`: Allelic depth (number of reads) specifically supporting the reference allele.
+    *   `FORMAT_AD_ALT`: Allelic depth (number of reads) specifically supporting the alternate allele.
 *   **Experiments:**
 
 | Notebook | Description | Results |
@@ -28,25 +44,27 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 ### Step 2: VCF Pre-Filtering
 *   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, 5,012,204 variants)
-*   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation.
+*   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation. This single, rapid step will safely strip away about 90-95% of the VCF leaving only rare/novel variants across the entire genome (coding and non-coding).
 *   **Filter 1: Intrinsic QC Filters (Zero external downloads)**
     *   **What it does:** Relies on the sequencing machine's own confidence scores present in the VCF file.
     *   **Implementation details (based on `track1_step0_exp01-data_exploration.ipynb`):**
         *   **The PASS Filter:** The `FILTER` column contains flags for unreliable variants (e.g., `LowQual`, `MQ40`). We keep only rows where `FILTER` is missing (represented as `NaN` or `.` in pandas/cyvcf2) or `PASS`.
         *   **Genotype Quality (GQ) & Sample-Level Depth (DP):** Instead of using aggregate metrics like `INFO_DP` or `QUAL` which can be unreliable in difficult mapping regions, we prioritize sample-level confidence. We use `FORMAT_GQ` to measure the confidence that the specific 0/1 or 1/1 call for this child is correct, and `FORMAT_DP` to ensure the sequencer read this specific coordinate enough times *in this patient's sample*. We keep only rows where `FORMAT_GQ >= 20` (99% confidence) and `FORMAT_DP >= 10`.
-    *   **Estimated Impact:** Reduces the 5,012,204 variants down to about 3.5 to 4 million. This is ultra-safe and clears the garbage, but the file is still too big for an API.
 *   **Filter 2: The "Common Variant" Subtraction (Lightweight Extrinsic)**
     *   **What it does:** Since MVA is an ultra-rare pediatric disease, the causal mutation cannot be common in the healthy public. We use a small "blacklist" database to perform a rapid subtraction.
     *   **Implementation details:**
         *   **Dataset:** dbSNP Common or gnomAD Common VCFs (usually just 1-2 GB).
         *   **Threshold:** We filter out variants with a frequency >0.5% (or 0.1%). *Crucially, we do not use a strict 1% cutoff.* As seen in literature (e.g., Cho et al. 2025 on MOCS2, see 00-references.md file), causal recessive variants can reach >3% in specific subpopulations due to founder effects. A more conservative threshold prevents accidentally dropping localized causal mutations.
         *   **Tools:** We must perform *allele-aware* subtraction using tools like `bcftools isec -c all` or `slivar`. We must explicitly avoid coordinate-only tools like `bedtools intersect`, which would erroneously delete a novel pathogenic mutation if it simply shares a coordinate with a common harmless variant.
-    *   **Estimated Impact:** Humans share most of their variation. This single, rapid step will safely strip away about 90-95% of the VCF, reducing the ~4 million high-quality variants down to roughly 100,000 to 200,000 rare/novel variants across the entire genome (coding and non-coding).
+*   **Additional Metrics for Filtering/Prioritization:**
+    *   **OMIM_PHENOTYPE (`dbnsfp.omim_phenotype`):** Directly links the mutated gene to known inherited syndromes in the Online Mendelian Inheritance in Man (OMIM) database. Why we need it: If the affected gene is already associated with terms like "Aneuploidy" or "mitotic spindle defects" in OMIM, it immediately becomes a top-priority candidate for our MVA patient.
+    *   **CLINVAR_REVIEW_STATUS (`clinvar.rcv.review_status`):** Indicates the level of evidence or review in ClinVar (conceptually equivalent to their 0 to 4-star rating system). Why we need it: A variant labeled as "Pathogenic" with zero stars (single submitter, no criteria provided) is much less reliable than one reviewed by an expert panel. This helps us filter out low-confidence clinical assertions.
+    *   **LOFTOOL_SCORE (`dbnsfp.loftool`):** A score reflecting how intolerant the affected gene is to Loss-of-Function (LoF) mutations. Why we need it: It tells us if the gene can tolerate being broken. If a gene is highly intolerant to LoF, a highly destructive mutation (like a frameshift or nonsense) located there is a very strong candidate for causing severe disease.
 *   **Experiments:**
 
-| Notebook | Description | Results |
-| :--- | :--- | :--- |
-| | | |
+| Notebook | Description | Results                                                                                                                                                                                                                                                                                                                                                       |
+| :--- | :--- |:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters (PASS, GQ>=20, DP>=10, Het AB 0.3-0.7) and outputs a structured Pandas CSV file. | Processed 5M variants -> 2.64M variants surviving (52.8%) saved directly to `track1_step2_intrinsic_qc.csv` after filter 1. |
 
 ### Step 3: VCF Annotation
 *   **Input:** Pre-filtered VCF (approx. 100,000 to 200,000 rare variants).
@@ -82,18 +100,18 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | | | |
 
 ### Step 4: Variant Filtering (The Funnel)
-*   **Action:** Apply a series of strict filters to reduce the millions of variants down to a few dozen candidates.
-*   **Filter 1: Quality Control (Removing "Typos").** 
-    *   *How/Why:* DNA sequencing machines aren't perfect; they make reading errors. This filter ensures we only keep mutations that the machine is highly confident are real, throwing out low-quality reads.
+*   **Action:** Apply a series of strict, computationally rigorous filters to reduce the millions of WGS variants down to a highly confident, biologically plausible shortlist.
+*   **Filter 1: Quality Control (Removing "Typos" & Sequencing Artifacts).** 
+    *   *How/Why:* DNA sequencing machines aren't perfect; they make reading errors. To ensure we only keep true biological variants, we cannot rely on default calls. We enforce hard thresholds: throwing out variants with a Genotype Quality (GQ) < 20, a Depth of Coverage (DP) < 10, or an Allelic Balance (AB) outside the 0.30–0.70 range for heterozygous calls (as a highly skewed AB usually indicates contamination or mapping artifacts).
 *   **Filter 2: Population Rarity (Removing Common Traits).** 
-    *   *How/Why:* MVA is an ultra-rare disease. If a genetic mutation is found in 5% of the healthy public, it cannot be the cause. We use databases like gnomAD to filter out these "common" harmless variants, keeping only those that are extremely rare (e.g., < 0.1% frequency).
-*   **Filter 3: Functional Impact (Removing "Harmless" Changes).** 
-    *   *How/Why:* Many mutations act like harmless spelling differences (e.g., "color" vs "colour"). We filter these out, keeping only the mutations that land in crucial protein-coding regions and are predicted to severely damage or scramble the resulting protein.
+    *   *How/Why:* MVA is an ultra-rare, severe pediatric disease. A 0.1% frequency is too permissive and leaves too much background noise. We use gnomAD to aggressively filter variants, requiring a Maximum Subpopulation Allele Frequency (AF) < 0.01% for recessive scenarios, and essentially 0.00% (truly novel variants) for dominant scenarios.
+*   **Filter 3: Functional Impact & Pathogenicity (Removing "Harmless" Changes).** 
+    *   *How/Why:* Many mutations act like harmless spelling differences. Since we are analyzing WGS data, restricting our filter strictly to coding regions wastes the genome's non-coding value. We keep mutations in critical coding regions and intronic splice-sites, and we automate the removal of benign noise by enforcing a CADD score > 20 (which mathematically eliminates the top 99% of harmless variants across the genome).
 *   **Filter 4: Inheritance Model (Matching the CSV Scenarios).** 
-    *   *How/Why:* Humans have two copies of every gene. Depending on the exact biology of this child's MVA, we are looking for variants that fit one of the three scenarios required for submission:
-        *   *Scenario 1 (Homozygous - Recessive):* The patient inherited the exact same rare mutation from both parents, breaking both copies of a gene in the same way.
-        *   *Scenario 2 (Compound Heterozygous - Recessive):* The patient inherited two *different* rare mutations that landed in the exact same gene (both copies are broken, but differently).
-        *   *Scenario 3 (Dominant):* A single, extraordinarily severe mutation that causes the disease all by itself, even if the other copy of the gene is healthy.
+    *   *How/Why:* Depending on the biology of this child's MVA, variants must fit specific clinical scenarios.
+        *   *Scenario 1 (Homozygous - Recessive):* The exact same rare mutation inherited on both alleles.
+        *   *Scenario 2 (Compound Heterozygous - Recessive):* Two different rare mutations in the exact same gene. Note: Without parental VCFs to determine "phase," our pipeline will flag these, but we cannot computationally guarantee they are on opposite chromosomes.
+        *   *Scenario 3 (Dominant):* A single extraordinarily severe mutation. For this, we strictly prioritize truncating variants inside genes with a high Loss-of-Function intolerance (using our LOFTOOL score).
 *   **Experiments:**
 
 | Notebook | Description | Results |

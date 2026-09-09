@@ -14,3 +14,8 @@ This document tracks all new interesting findings and insights (Track 1, Track 2
     *   **HP:0001518**: Small for gestational age
     *   **HP:0200067**: Recurrent spontaneous abortion (Family History)
 *   **Insight:** The presence of *Recurrent spontaneous abortion* in the parents strongly hints at a heritable chromosomal instability issue or aneuploidy running in the family. Furthermore, the *Rhabdomyosarcoma* perfectly matches the literature (found in `00-references.md`) stating that MVA patients are highly susceptible to childhood cancers like Wilms' tumor and rhabdomyosarcoma.
+
+## Track 1: VCF Pre-Filtering Findings
+**Source:** `track1_step2_exp01-vcf_prefiltering.ipynb`
+*   Applying intrinsic QC filters (GQ>=20, DP>=10, and 'PASS') coupled with a strict Allelic Balance filter (0.30 - 0.70 for heterozygous variants) successfully removes nearly half of the raw variants.
+*   **Insight:** The raw VCF contained 5,012,204 variants. After basic intrinsic QC, 2,645,065 variants survived (a ~47.2% reduction in noise). These filtered variants are saved in `data/WGS_EX2312012_HGWCNDSX7_intrinsic_qc.vcf.gz`. 
