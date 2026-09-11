@@ -45,19 +45,13 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 ### Step 2: VCF Pre-Filtering
 *   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, 5,012,204 variants)
 *   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation. This single, rapid step will safely strip away about 90-95% of the VCF leaving only rare/novel variants across the entire genome (coding and non-coding).
-*   **Filter 1: Unified Intrinsic Quality Control (QC)**
-* **What it does:** Combines all sequencer-derived confidence metrics into a single, efficient gatekeeper step. This eliminates low-confidence artifacts and redundant code operations before applying external filters.
-* **Implementation details:**
-  * **VCF Columns:** We evaluate `FILTER` , `FORMAT_DP` , and `FORMAT_GQ` simultaneously.
-  * **Threshold:** We enforce that `FILTER` is either `PASS` or missing (.), `FORMAT_DP >= 10`, and `FORMAT_GQ >= 20`
-  * **Action:** Any variant failing to meet all three of these minimum criteria in a single programmatic pass is immediately dropped.
-*   **Filter 2: Intrinsic QC Filters (Zero external downloads)**
+*   **Filter 1: Intrinsic QC Filters (Zero external downloads)**
     *   **What it does:** Relies on the sequencing machine's own confidence scores present in the VCF file.
     *   **Implementation details (based on `track1_step0_exp01-data_exploration.ipynb`):**
         *   **The PASS Filter:** The `FILTER` column contains flags for unreliable variants (e.g., `LowQual`, `MQ40`). We keep only rows where `FILTER` is missing (represented as `NaN` or `.` in pandas/cyvcf2) or `PASS`.
         *   **Genotype Quality (GQ) & Sample-Level Depth (DP):** Instead of using aggregate metrics like `INFO_DP` or `QUAL` which can be unreliable in difficult mapping regions, we prioritize sample-level confidence. We use `FORMAT_GQ` to measure the confidence that the specific 0/1 or 1/1 call for this child is correct, and `FORMAT_DP` to ensure the sequencer read this specific coordinate enough times *in this patient's sample*. We keep only rows where `FORMAT_GQ >= 20` (99% confidence) and `FORMAT_DP >= 10`.
         *   **Output Format:** The output of this stage must be saved as a standard VCF (e.g., `track1_step2_intrinsic_qc.vcf.gz`), injecting any custom metrics (like Allelic Balance) as VCF `INFO` tags. Outputting a CSV here breaks compatibility with the bioinformatics tools required for Filter 2 and Step 3.
-*   **Filter 3: The "Common Variant" Subtraction (Lightweight Extrinsic)**
+*   **Filter 2: The "Common Variant" Subtraction (Lightweight Extrinsic)**
     *   **What it does:** Since MVA is an ultra-rare pediatric disease, the causal mutation cannot be common in the healthy public. We use a small "blacklist" database to perform a rapid subtraction.
     *   **Implementation details:**
         *   **Dataset (The Lightweight Blacklist):** We use **dbSNP Common (GRCh38)** (`common_all_20180418.vcf.gz`), which is a curated ~1.5 GB single file containing known common human variants (MAF >= 1% in at least one major population). This avoids the extreme computational overhead of streaming hundreds of gigabytes of gnomAD VCFs.
@@ -70,7 +64,11 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38. | Processed 5M variants -> 2.64M survived intrinsic QC. Subtraction dropped 4.4M common variants. Final result: 591,339 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz`. |
 
-### Step 3: VCF Annotation
+### Step 3: VCF Annotation & Scoring (Parallel Tracks)
+*   **Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz` containing ~591,339 variants).
+*   **Action:** We will run two independent annotation pipelines in parallel to evaluate the strengths of traditional functional annotation versus deep-learning regulatory scoring, and then compare their top candidates.
+
+#### Step 3A: Traditional Functional Annotation (SnpEff & MyVariant.info)
 *   **Input:** Pre-filtered VCF.
 *   **Action:** We must annotate each surviving rare variant to understand its biological context.
 *   **Data Added During Annotation:**
@@ -90,33 +88,39 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         *   `LOFTOOL_SCORE`: Gene's intolerance to loss-of-function. 
 *   **Tools:**
     *   **Functional Annotation:** We will use a tool like **SnpEff** locally. These "live" annotators use a reference transcriptome to dynamically calculate the `GENE_SYMBOL`, `CONSEQUENCE`, and `PUTATIVE_IMPACT` on the fly from the `REF`/`ALT` alleles, ensuring 100% coverage even for entirely novel mutations. SnpEff databases for GRCh38 are roughly ~5GB.
-    *   **Database Cross-referencing:** To append the remaining metadata (`GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `OMIM_PHENOTYPE`, etc.), we will use query an external REST API (like **MyVariant.info**) to fetch and append these fields programmatically via Python. Using APIs is preferred. SnpEff will provide `GENE_SYMBOL`, `CONSEQUENCE` and `PUTATIVE_IMPACT`. `MyVariant.info` will provide the remaining fields. 
+    *   **Filter:** Keep only variants where `PUTATIVE_IMPACT` is `HIGH` or `MODERATE` (drastically reducing the ~591k variants to roughly ~10k-20k). 
+    * **Database Cross-referencing:** To append the remaining metadata (`GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `OMIM_PHENOTYPE`, etc.), we will use query an external REST API (like **MyVariant.info**) to fetch and append these fields programmatically via Python. Using APIs is preferred. SnpEff will provide `GENE_SYMBOL`, `CONSEQUENCE` and `PUTATIVE_IMPACT`. `MyVariant.info` will provide the remaining fields. 
 *   **Output:**
-    The final output will be a flattened Pandas DataFrame containing exactly one row per variant (prioritizing the canonical transcript's most severe consequence to avoid duplicates). The final columns will be:
+    The final output will be a VCF file containing exactly one row per variant (prioritizing the canonical transcript's most severe consequence to avoid duplicates). The final columns will be:
     *   **From Input VCF:** `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, `FORMAT_DP`, `FORMAT_GQ`, `FORMAT_GT`, `FORMAT_AD_REF`, `FORMAT_AD_ALT`
     *   **Added at this Step:** `GENE_SYMBOL`, `CONSEQUENCE`, `PUTATIVE_IMPACT`, `GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `CLINVAR_REVIEW_STATUS`, `OMIM_PHENOTYPE`, `LOFTOOL_SCORE`
-*   **Experiments:**
+
+#### Step 3B: Deep Learning Regulatory Scoring (AlphaGenome Atlas)
+*   **Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz`).
+*   **Action:** Evaluate the rare variants across the *entire* genome (both coding and non-coding regions) for structural and regulatory impact using Google DeepMind's AlphaGenome Atlas API. 
+    *   *Why this complements 3A:* Traditional tools like SnpEff are excellent at identifying variants that change an amino acid (protein-coding changes). However, AlphaGenome excels at predicting regulatory effects (e.g., altered transcription factor binding, chromatin accessibility, or RNA splicing). Note that AlphaGenome is not restricted to the non-coding genome—it also evaluates variants *inside* coding regions to see if they cause hidden regulatory disruptions, like breaking an exonic splice site or altering expression.
+*   **Data Added During Annotation:**
+    *   `AVI_SCORE` (AlphaGenome Variant Impact): A unified numeric score predicting the pathogenicity and regulatory disruption of the variant.
+    *   `TARGET_GENE`: The specific gene(s) whose expression or splicing is predicted to be altered by the variant (crucial for Step 4 Phenotype Matching).
+    *   `REGULATORY_FEATURE`: The specific mechanism or non-coding element disrupted (e.g., Splicing, Enhancer, Promoter) to inform Track 2 mechanism characterization.
+*   **Tools:** 
+    *   **AlphaGenome Atlas API** (`alphagenome.atlas.atlas.AtlasClient`).
+    *   We will use `AtlasClient.query_variants(variants, requested_scorers=['avi'])` to retrieve the scores from the returned `AnnData` matrix and merge them back into our pipeline.
+    *   **Filter:** Retain only variants that meet a high `AVI_SCORE` threshold (e.g., top 1%) to isolate the most destructive candidates with significant regulatory impact.
+*   **Output:** 
+    An annotated dataset (VCF file) containing our rare variants appended with their respective AlphaGenome scores, target genes, and regulatory metadata.
+
+#### Step 3C: Comparison & Candidate Selection
+*   **Action:** We will merge the top-ranked candidates from both 3A (ranked by CADD/REVEL + Phenotype) and 3B (ranked by AVI score). This will allow us to see if AlphaGenome identifies a highly impactful non-coding regulatory variant that the traditional SnpEff pipeline completely ignored.
+
+
+* **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
 | | | |
 
-### Step 4: Variant Filtering (The Funnel)
-*   **Action:** Apply a series of strict, computationally rigorous filters to reduce the millions of WGS variants down to a highly confident, biologically plausible shortlist.
-*   **Filter 1: Functional Impact & Pathogenicity (Removing "Harmless" Changes).** 
-    *   *How/Why:* Many mutations act like harmless spelling differences. Since we are analyzing WGS data, restricting our filter strictly to coding regions wastes the genome's non-coding value. We keep mutations in critical coding regions and intronic splice-sites, and we automate the removal of benign noise by enforcing a CADD score > 20 (which mathematically eliminates the top 99% of harmless variants across the genome).
-*   **Filter 2: Inheritance Model (Matching the CSV Scenarios).** 
-    *   *How/Why:* Depending on the biology of this child's MVA, variants must fit specific clinical scenarios.
-        *   *Scenario 1 (Homozygous - Recessive):* The exact same rare mutation inherited on both alleles.
-        *   *Scenario 2 (Compound Heterozygous - Recessive):* Two different rare mutations in the exact same gene. Note: Without parental VCFs to determine "phase," our pipeline will flag these, but we cannot computationally guarantee they are on opposite chromosomes.
-        *   *Scenario 3 (Dominant):* A single extraordinarily severe mutation. For this, we strictly prioritize truncating variants inside genes with a high Loss-of-Function intolerance (using our LOFTOOL score).
-*   **Experiments:**
-
-| Notebook | Description | Results |
-| :--- | :--- | :--- |
-| | | |
-
-### Step 5: Gene Prioritization & Phenotype Matching
+### Step 4: Gene Prioritization & Phenotype Matching
 *   **Action:** We now have a small list of rare, protein-altering mutations. We cross-reference the genes containing these mutations with the HPO terms generated in Step 1.
 *   **Matching:** We compare the patient's extracted HPO terms against established "Gene-to-Phenotype" databases (like OMIM or the HPO database itself). These databases contain lists of symptoms (HPO terms) that are scientifically proven to occur when specific genes are mutated. By calculating the overlap (or semantic similarity) between the child's symptoms and a gene's known disease profile, we can rank the candidate genes.
     *   *Example of Cross-referencing:* 
@@ -135,7 +139,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- | :--- |
 | | | |
 
-### Step 6: Ranking and Submission
+### Step 5: Ranking and Submission
 *   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`) between 0 and 1 to each candidate variant. 
     *   *What is EPCR?* This is not a standard biological metric; it is a custom confidence score we must engineer for this hackathon. It represents our pipeline's belief that a specific variant is the true cause of the disease.
     *   *How we calculate it:* We will build a scoring function (either a weighted heuristic formula or an ML model) that combines the variant's features into a single score. For example, a variant gets a higher `epcr` if it has:
