@@ -32,9 +32,9 @@ MVA is not caused by a single gene — several different genes, when broken, can
 **How to use this table for Track 1:** Match the child's clinical features (growth, brain findings, tumor history, seizures, etc.) against the "Typical features" column. Whichever gene's known phenotype overlaps best with the child's actual symptoms is the strongest candidate to search first in his genome data — this is the essence of *phenotype-guided* prioritization rather than blindly ranking all variants genome-wide.
 
 ## 3. Rationale for Prioritizing Coding and Splicing Variants in WGS Analysis
-**High Diagnostic Yield in Coding Regions:** Although protein-coding exomes represent merely ~1–2% of the human genome, approximately 85% of documented pathogenic variants responsible for monogenic, Mendelian disorders are located within exons and canonical splice junctions (Choi et al., 2009; Stenson et al., 2017).
+**High Diagnostic Yield in Coding Regions:** Although protein-coding exomes represent merely ~1–2% of the human genome, approximately 85% of documented pathogenic variants responsible for monogenic, Mendelian disorders are located within exons and canonical splice junctions.
 
-**Clear Functional Predictability:** Coding variants—such as frameshifts, nonsense (premature stop codons), canonical splice site disruptions (+/- 1 bp, +/-2 bp), and severe missense changes—have interpretable, direct consequences on transcript architecture and protein stability under established clinical guidelines (Richards et al., 2015, Genetics in Medicine).
+**Clear Functional Predictability:** Coding variants—such as frameshifts, nonsense (premature stop codons), canonical splice site disruptions (+/- 1 bp, +/-2 bp), and severe missense changes have interpretable, direct consequences on transcript architecture and protein stability under established clinical guidelines.
 
 **Signal-to-Noise Ratio & Computational Limitations:** Whole Genome Sequencing (WGS) yields millions of non-coding variants per individual. Current in silico tools have limited specificity in deep intronic and intergenic spaces, leading to high false-positive rates and uninterpretable Variants of Uncertain Significance (VUS) without transcriptomic validation.
 
