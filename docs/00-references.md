@@ -68,7 +68,7 @@ Source: [A prevalent MOCS2 variant in the Roma population and mild molybdenum co
 7. Genetic diagnosis by whole exome capture: https://pubmed.ncbi.nlm.nih.gov/19861545/
 8. ACMG/AMP sequence variant interpretation standards: https://doi.org/10.1038/gim.2015.30
 9. The Human Gene Mutation Database (HGMD): https://pubmed.ncbi.nlm.nih.gov/28349240/
-10. [Clinical interpretation of non-coding genome variants: https://pmc.ncbi.nlm.nih.gov/articles/PMC12192682/
+10. Clinical interpretation of non-coding genome variants: https://pmc.ncbi.nlm.nih.gov/articles/PMC12192682/
 ---
 
 
