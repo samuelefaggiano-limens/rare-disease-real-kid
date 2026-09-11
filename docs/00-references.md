@@ -31,8 +31,22 @@ MVA is not caused by a single gene — several different genes, when broken, can
 
 **How to use this table for Track 1:** Match the child's clinical features (growth, brain findings, tumor history, seizures, etc.) against the "Typical features" column. Whichever gene's known phenotype overlaps best with the child's actual symptoms is the strongest candidate to search first in his genome data — this is the essence of *phenotype-guided* prioritization rather than blindly ranking all variants genome-wide.
 
+## 3. Rationale for Prioritizing Coding and Splicing Variants in WGS Analysis
+**High Diagnostic Yield in Coding Regions:** Although protein-coding exomes represent merely ~1–2% of the human genome, approximately 85% of documented pathogenic variants responsible for monogenic, Mendelian disorders are located within exons and canonical splice junctions (Choi et al., 2009; Stenson et al., 2017).
 
-## 3. A Critical Filtering Caution (Don't Over-Filter by Population Frequency)
+**Clear Functional Predictability:** Coding variants—such as frameshifts, nonsense (premature stop codons), canonical splice site disruptions (+/- 1 bp, +/-2 bp), and severe missense changes—have interpretable, direct consequences on transcript architecture and protein stability under established clinical guidelines (Richards et al., 2015, Genetics in Medicine).
+
+**Signal-to-Noise Ratio & Computational Limitations:** Whole Genome Sequencing (WGS) yields millions of non-coding variants per individual. Current in silico tools have limited specificity in deep intronic and intergenic spaces, leading to high false-positive rates and uninterpretable Variants of Uncertain Significance (VUS) without transcriptomic validation.
+
+**Filtering Strategy:** Prioritizing exonic and flanking splice regions is a standard Tier-1 clinical genomics workflow. 
+
+***Non-coding intronic sequences are routinely excluded in early filtration steps unless:*** No causal candidate emerges in primary coding analysis.
+
+***The variant occurs within canonical/extended splice-donor/acceptor regions.***
+
+***A well-characterized deep-intronic cryptic splice site or regulatory variant matches the phenotype and can be validated (e.g., via RNA-Seq or functional reporter assays).***
+
+## 4. A Critical Filtering Caution (Don't Over-Filter by Population Frequency)
 
 When processing a whole-genome VCF file, a standard step is to remove "common" variants — ones seen too frequently in the general population — on the assumption that a variant causing a rare disease should itself be rare. A typical cutoff is **1% frequency** in reference population databases.
 
@@ -51,7 +65,10 @@ Source: [A prevalent MOCS2 variant in the Roma population and mild molybdenum co
 4. TRIP13 variant and multiple tumors (MVA syndrome 3): https://pubmed.ncbi.nlm.nih.gov/42595739/
 5. MAD2L1BP / p31comet mutation and tumors: https://pubmed.ncbi.nlm.nih.gov/37796616/
 6. MOCS2 founder variant and filtering lesson: https://pubmed.ncbi.nlm.nih.gov/40707723/
-
+7. Genetic diagnosis by whole exome capture: https://pubmed.ncbi.nlm.nih.gov/19861545/
+8. ACMG/AMP sequence variant interpretation standards: https://doi.org/10.1038/gim.2015.30
+9. The Human Gene Mutation Database (HGMD): https://pubmed.ncbi.nlm.nih.gov/28349240/
+10. [Clinical interpretation of non-coding genome variants: https://pmc.ncbi.nlm.nih.gov/articles/PMC12192682/
 ---
 
 
