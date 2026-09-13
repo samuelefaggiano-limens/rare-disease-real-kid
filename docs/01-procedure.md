@@ -88,31 +88,60 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         *   `LOFTOOL_SCORE`: Gene's intolerance to loss-of-function. 
 *   **Tools:**
     *   **Functional Annotation:** We will use a tool like **SnpEff** locally. These "live" annotators use a reference transcriptome to dynamically calculate the `GENE_SYMBOL`, `CONSEQUENCE`, and `PUTATIVE_IMPACT` on the fly from the `REF`/`ALT` alleles, ensuring 100% coverage even for entirely novel mutations. SnpEff databases for GRCh38 are roughly ~5GB.
-    *   **Filter:** Keep only variants where `PUTATIVE_IMPACT` is `HIGH` or `MODERATE` (drastically reducing the ~591k variants to roughly ~10k-20k). 
+    *   **Filter:** Keep only variants where `PUTATIVE_IMPACT` is `HIGH` or `MODERATE` (drastically reducing the ~591k variants to roughly ~10k-20k).
+    *   **Local Transcriptome Annotation (SnpEff):** Run SnpEff locally using the GRCh38 database with canonical transcript enforcement `(-canon)` to avoid transcript duplication and retain the single most severe biological consequence per variant.
+Dynamically derive: `GENE_SYMBOL`, `CONSEQUENCE`, and `PUTATIVE_IMPACT`.
+   *    **Impact Filtering:** Retain variants where `PUTATIVE_IMPACT` is categorized as `HIGH` or `MODERATE`, reducing the dataset from ~591k to ~10k–20k candidates.
+   *    **High-Throughput Metadata Cross-Referencing:** Query the MyVariant.info REST API strictly via its batch endpoint `(POST /v1/variant`, batch size = 1,000) using a Python pipeline with retry and backoff logic to prevent rate-limiting.
+     
+Append: `GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `CLINVAR_REVIEW_STATUS`, `OMIM_PHENOTYPE`, and `LOFTOOL_SCORE`.
     * **Database Cross-referencing:** To append the remaining metadata (`GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `OMIM_PHENOTYPE`, etc.), we will use query an external REST API (like **MyVariant.info**) to fetch and append these fields programmatically via Python. Using APIs is preferred. SnpEff will provide `GENE_SYMBOL`, `CONSEQUENCE` and `PUTATIVE_IMPACT`. `MyVariant.info` will provide the remaining fields. 
 *   **Output:**
     The final output will be a VCF file containing exactly one row per variant (prioritizing the canonical transcript's most severe consequence to avoid duplicates). The final columns will be:
     *   **From Input VCF:** `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, `FORMAT_DP`, `FORMAT_GQ`, `FORMAT_GT`, `FORMAT_AD_REF`, `FORMAT_AD_ALT`
     *   **Added at this Step:** `GENE_SYMBOL`, `CONSEQUENCE`, `PUTATIVE_IMPACT`, `GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `CLINVAR_REVIEW_STATUS`, `OMIM_PHENOTYPE`, `LOFTOOL_SCORE`
+    *   **Format:**  Multi-sample annotated VCF (metadata written into standard VCF `INFO` tags: `CSQ`, `CADD`, `CLINVAR_SIG`, etc.) alongside a flattened, unified tabular file `(track1_step3a_coding_annotated.tsv)` for downstream ranking.
+
+Fields Carried Over: `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, `FORMAT_DP`, `FORMAT_GQ`, `FORMAT_GT`, `FORMAT_AD_REF`, `FORMAT_AD_ALT`.
+
+Fields Added: `GENE_SYMBOL`, `CONSEQUENCE`, `PUTATIVE_IMPACT`, `GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `CLINVAR_REVIEW_STATUS`, `OMIM_PHENOTYPE`, `LOFTOOL_SCORE`.
 
 #### Step 3B: Deep Learning Regulatory Scoring (AlphaGenome Atlas)
 *   **Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz`).
-*   **Action:** Evaluate the rare variants across the *entire* genome (both coding and non-coding regions) for structural and regulatory impact using Google DeepMind's AlphaGenome Atlas API. 
-    *   *Why this complements 3A:* Traditional tools like SnpEff are excellent at identifying variants that change an amino acid (protein-coding changes). However, AlphaGenome excels at predicting regulatory effects (e.g., altered transcription factor binding, chromatin accessibility, or RNA splicing). Note that AlphaGenome is not restricted to the non-coding genome—it also evaluates variants *inside* coding regions to see if they cause hidden regulatory disruptions, like breaking an exonic splice site or altering expression.
+*   **Action:** Evaluate the rare variants across the *entire* genome (both coding and non-coding regions) for structural and regulatory impact using Google DeepMind's AlphaGenome Atlas API.
+*   **Optimization & Pre-filtering:** To bypass API latency across ~591k raw variants, apply a regulatory region pre-filter using Bedtools against candidate cis-regulatory elements (ENCODE cCREs, UTRs, promoters, and +/-250 bp canonical/cryptic splice junctions), reducing input variants to biologically actionable regions (~40k–60k variants).
+    *   *Why this complements 3A:* Traditional tools like SnpEff are excellent at identifying variants that change an amino acid (protein-coding changes). However, AlphaGenome excels at predicting regulatory effects (e.g., altered transcription factor binding, chromatin accessibility, or RNA splicing). Note that AlphaGenome is not restricted to the non-coding genome it also evaluates variants *inside* coding regions to see if they cause hidden regulatory disruptions, like breaking an exonic splice site or altering expression.
 *   **Data Added During Annotation:**
     *   `AVI_SCORE` (AlphaGenome Variant Impact): A unified numeric score predicting the pathogenicity and regulatory disruption of the variant.
     *   `TARGET_GENE`: The specific gene(s) whose expression or splicing is predicted to be altered by the variant (crucial for Step 4 Phenotype Matching).
     *   `REGULATORY_FEATURE`: The specific mechanism or non-coding element disrupted (e.g., Splicing, Enhancer, Promoter) to inform Track 2 mechanism characterization.
-*   **Tools:** 
+    *   **Execution:** Query the AlphaGenome Atlas client `(alphagenome.atlas.atlas.AtlasClient)` in chunks of 5,000 variants:
+    *   client.query_variants(variants_chunk, requested_scorers=['avi'])
+    *   Extract scores from the resulting `AnnData` objects.
+*   **Tools:**
     *   **AlphaGenome Atlas API** (`alphagenome.atlas.atlas.AtlasClient`).
     *   We will use `AtlasClient.query_variants(variants, requested_scorers=['avi'])` to retrieve the scores from the returned `AnnData` matrix and merge them back into our pipeline.
     *   **Filter:** Retain only variants that meet a high `AVI_SCORE` threshold (e.g., top 1%) to isolate the most destructive candidates with significant regulatory impact.
+    *   **Data Added:**
+`AVI_SCORE`: Unified AlphaGenome Variant Impact score quantifying predicted regulatory disruption.
+`TARGET_GENE`: Predicted affected gene(s) targeted by the disrupted regulatory element.
+`REGULATORY_FEATURE`: Disrupted biological module (e.g., Splicing, Promoter, Enhancer, Chromatin Accessibility).
 *   **Output:** 
     An annotated dataset (VCF file) containing our rare variants appended with their respective AlphaGenome scores, target genes, and regulatory metadata.
+    Tabular dataset `(track1_step3b_regulatory_annotated.tsv)` filtered to top-tier candidates (e.g., `AVI_SCORE` ≥99thpercentile of scored variants).
 
 #### Step 3C: Comparison & Candidate Selection
 *   **Action:** We will merge the top-ranked candidates from both 3A (ranked by CADD/REVEL + Phenotype) and 3B (ranked by AVI score). This will allow us to see if AlphaGenome identifies a highly impactful non-coding regulatory variant that the traditional SnpEff pipeline completely ignored.
+  
+**Classification Logic:**
 
+**Concordant High-Confidence Candidates (Coding + Regulatory):** Variants flagged with `PUTATIVE_IMPACT` (HIGH/MODERATE) that also display high `AVI_SCORE`, highlighting coding alterations that simultaneously disrupt local secondary structures, exonic splice enhancers (ESEs), or transcription factor binding.
+
+**Non-Coding Regulatory Rescues:** Variants discarded by Step 3A (annotated as `LOW` or `MODIFIER`) but scoring in the top tier of `AVI_SCORE` with a clear, predicted `TARGET_GENE`.
+
+**Clinical & Conservation Concordance:** Pathogenic/Likely Pathogenic ClinVar records or variants exceeding thresholds (`CADD_PHRED`≥ 20,`REVEL`≥0.5) advance directly to priority status.
+
+Final Deliverable:A unified candidate table `(track1_step3_prioritized_candidates.parquet / .tsv)` containing sample genotypes, variant coordinates, combined pathogenicity/regulatory scores, and mapped gene symbols ready for clinical phenotype intersection.
 
 * **Experiments:**
 
