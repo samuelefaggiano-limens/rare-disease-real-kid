@@ -128,7 +128,7 @@ Step 3 is implemented as **one single notebook** (`track1_step3_exp01-annotation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| `track1_step3_exp01-annotation_and_filtering.ipynb` | Run SnpEff local annotation (MANE Select), parse high/moderate impact + splice region variants, batch annotate with MyVariant.info and gnomAD LOEUF constraints. | Processed 380,292 variants, filtered out low-impact mutations. Surviving 1,653 variants annotated and exported to `track1_step3_annotation_and_filtering.vcf.gz`. |
+|  |  |  |
 
 ---
 
