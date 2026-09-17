@@ -1,33 +1,32 @@
-"""Track 1, Paso 4: priorizacion de genes por fenotipo (HPO) y modelo de herencia.
+"""Track 1, Step 4: gene prioritisation by phenotype (HPO) and inheritance model.
 
-Entrada: el VCF anotado del Paso 3A (o el del 3B, que es un superconjunto) y
-los terminos HPO del paciente (Paso 1). Salida: un ranking de genes y una
-tabla de variantes candidatas con todo lo que el Paso 5 necesita para
-calcular el epcr.
+Input: the annotated VCF from Step 3A (or 3B, which is a superset) and the
+patient's HPO terms (Step 1). Output: a gene ranking and a table of candidate
+variants with everything Step 5 needs to compute the epcr.
 
-Que hace, en orden:
-  1. Lee los terminos HPO del paciente. Por defecto los saca de la tabla del
-     .docx clinico (igual que el notebook del Paso 1); se pueden pasar con
-     --hpo para reproducir sin el documento.
-  2. Carga la ontologia (hp.obo) y las anotaciones gen->fenotipo de HPO
-     (genes_to_phenotype.txt) y calcula la similitud semantica de cada gen
-     con el paciente (ver src/hpo.py). El solapamiento exacto de terminos
-     da 0 para casi todo porque las enfermedades se anotan con terminos
-     hermanos o padres de los del paciente; la ontologia da credito parcial.
-  3. Agrupa las variantes por gen, deduce la zigosidad y si el gen tiene
-     evidencia bialelica (hom-alt o >= 2 het, candidatas a heterocigosis
-     compuesta), que es lo esperable en MVA (autosomica recesiva).
-  4. Chequeo explicito del panel MVA (BUB1B, CEP57, TRIP13, MAD2L1BP) y de
-     genes del checkpoint del huso / centrosoma: se imprimen sus variantes
-     aunque su score fenotipico sea bajo.
+What it does, in order:
+  1. Reads the patient's HPO terms. By default from the table in the clinical
+     .docx (same as the Step 1 notebook); they can be passed with --hpo to
+     reproduce without the document.
+  2. Loads the ontology (hp.obo) and HPO's gene->phenotype annotations
+     (genes_to_phenotype.txt) and computes the semantic similarity of every
+     gene to the patient (see src/hpo.py). Exact term overlap gives 0 for
+     almost everything because diseases are annotated with siblings or
+     parents of the patient's terms; the ontology gives partial credit.
+  3. Groups variants by gene, derives zygosity and whether the gene has
+     biallelic evidence (hom-alt or >= 2 het, compound-het candidates), which
+     is what MVA (autosomal recessive) is expected to show.
+  4. Explicit check of the MVA panel (BUB1B, CEP57, TRIP13, MAD2L1BP) and of
+     spindle-checkpoint / centrosome genes: their variants are printed even if
+     their phenotype score is low.
 
-Salidas:
-  output/track1/track1_step4_gene_ranking.csv   ranking por gen (sin coordenadas)
-  data/track1_step4_candidates.tsv              variantes candidatas (contiene
-                                                 coordenadas del paciente: data/
-                                                 esta gitignoreado a proposito)
+Outputs:
+  output/track1/track1_step4_gene_ranking.csv   per-gene ranking (no coordinates)
+  data/track1_step4_candidates.tsv              candidate variants (contains
+                                                 patient coordinates: data/ is
+                                                 gitignored on purpose)
 
-Uso:
+Usage:
     python track1_step4_prioritize.py
     python track1_step4_prioritize.py --input track1_step3b_regulatory_annotated.vcf.gz
     python track1_step4_prioritize.py --hpo HP:0002859 HP:0000121 ...
@@ -54,18 +53,18 @@ DEFAULT_G2P = REPO_ROOT / "data" / "genes_to_phenotype.txt"
 DEFAULT_RANKING = REPO_ROOT / "output" / "track1" / "track1_step4_gene_ranking.csv"
 DEFAULT_CANDIDATES = REPO_ROOT / "data" / "track1_step4_candidates.tsv"
 
-# Terminos extraidos en track1_step1_exp01-hpo_extraction.ipynb (docs/02-findings.md).
-# Solo se usan si no hay .docx y no se pasa --hpo.
+# Terms extracted in track1_step1_exp01-hpo_extraction.ipynb (docs/02-findings.md).
+# Used only when there is no .docx and --hpo is not given.
 FALLBACK_HPO = ["HP:0002859", "HP:0000121", "HP:0004322", "HP:0001508",
                 "HP:0003202", "HP:0001622", "HP:0001518", "HP:0200067"]
 
-# Panel MVA: docs/00-references.md seccion 2.
+# MVA panel: docs/00-references.md section 2.
 MVA_PANEL = {"BUB1B": "MVA1 (OMIM:257300)", "CEP57": "MVA2 (OMIM:614114)",
-             "TRIP13": "MVA3 (OMIM:617598)", "MAD2L1BP": "p31comet, aneuploidia biallelica"}
+             "TRIP13": "MVA3 (OMIM:617598)", "MAD2L1BP": "p31comet, biallelic aneuploidy"}
 MVA_DISEASE_IDS = {"OMIM:257300", "OMIM:614114", "OMIM:617598", "ORPHA:1052"}
 
-# Checkpoint del huso mitotico (SAC), cinetocoro y centrosoma: la maquinaria
-# cuya perdida produce aneuploidia en mosaico. Lista curada, no exhaustiva.
+# Spindle assembly checkpoint (SAC), kinetochore and centrosome: the machinery
+# whose loss produces mosaic aneuploidy. Curated list, not exhaustive.
 SAC_CENTROSOME = {
     "BUB1", "BUB3", "MAD1L1", "MAD2L1", "TTK", "CDC20", "CENPE", "KNL1", "ZW10",
     "ZWILCH", "ZWINT", "SPDL1", "AURKB", "PLK1", "CENPF", "PCNT", "CDK5RAP2",
@@ -164,48 +163,48 @@ def read_variants(vcf_path: Path):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Paso 4: priorizacion de genes por HPO")
-    ap.add_argument("--input", default=str(DEFAULT_INPUT), help="VCF del Paso 3A o 3B")
+    ap = argparse.ArgumentParser(description="Step 4: gene prioritisation by HPO")
+    ap.add_argument("--input", default=str(DEFAULT_INPUT), help="Step 3A or 3B VCF")
     ap.add_argument("--docx", default=str(DEFAULT_DOCX))
-    ap.add_argument("--hpo", nargs="*", help="terminos HPO del paciente (anula el .docx)")
+    ap.add_argument("--hpo", nargs="*", help="patient HPO terms (overrides the .docx)")
     ap.add_argument("--obo", default=str(DEFAULT_OBO))
     ap.add_argument("--g2p", default=str(DEFAULT_G2P))
     ap.add_argument("--ranking-out", default=str(DEFAULT_RANKING))
     ap.add_argument("--candidates-out", default=str(DEFAULT_CANDIDATES))
-    ap.add_argument("--top", type=int, default=25, help="genes a mostrar en consola")
+    ap.add_argument("--top", type=int, default=25, help="genes to show on the console")
     args = ap.parse_args()
 
-    for p, label in ((args.input, "VCF anotado"), (args.obo, "hp.obo"), (args.g2p, "genes_to_phenotype.txt")):
+    for p, label in ((args.input, "annotated VCF"), (args.obo, "hp.obo"), (args.g2p, "genes_to_phenotype.txt")):
         if not Path(p).exists():
-            sys.exit(f"[-] No se encontro {label}: {p}")
+            sys.exit(f"[-] {label} not found: {p}")
 
-    # 1. Terminos HPO del paciente
+    # 1. Patient HPO terms
     if args.hpo:
         hpo_terms, src = list(args.hpo), "--hpo"
     elif Path(args.docx).exists():
         hpo_terms, src = read_hpo_from_docx(Path(args.docx)), Path(args.docx).name
     else:
-        hpo_terms, src = FALLBACK_HPO, "FALLBACK (docs/02-findings.md); falta el .docx"
+        hpo_terms, src = FALLBACK_HPO, "FALLBACK (docs/02-findings.md); .docx missing"
     if not hpo_terms:
-        sys.exit("[-] No se obtuvo ningun termino HPO")
-    log(f"[1/4] {len(hpo_terms)} terminos HPO del paciente ({src}): {' '.join(hpo_terms)}")
+        sys.exit("[-] No HPO term could be obtained")
+    log(f"[1/4] {len(hpo_terms)} patient HPO terms ({src}): {' '.join(hpo_terms)}")
 
-    # 2. Ontologia + anotaciones
+    # 2. Ontology + annotations
     onto = Ontology.from_obo(args.obo)
     gene_terms, gene_diseases = load_gene_annotations(args.g2p, onto)
     matcher = PhenotypeMatcher(onto, gene_terms)
     unknown = [t for t in hpo_terms if onto.canonical(t) is None]
     if unknown:
-        log(f"      AVISO: terminos no encontrados en hp.obo y descartados: {unknown}")
-    log(f"[2/4] Ontologia: {len(onto.parents):,} terminos | genes anotados: {len(gene_terms):,}")
+        log(f"      WARNING: terms not found in hp.obo and dropped: {unknown}")
+    log(f"[2/4] Ontology: {len(onto.parents):,} terms | annotated genes: {len(gene_terms):,}")
 
-    # 3. Variantes por gen
+    # 3. Variants per gene
     by_gene: dict[str, list[dict]] = defaultdict(list)
     n_var = 0
     for rec in read_variants(Path(args.input)):
         n_var += 1
-        by_gene[rec["gene"] or "(sin gen)"].append(rec)
-    log(f"[3/4] {n_var:,} variantes en {len(by_gene):,} genes leidas de {args.input}")
+        by_gene[rec["gene"] or "(no gene)"].append(rec)
+    log(f"[3/4] {n_var:,} variants in {len(by_gene):,} genes read from {args.input}")
 
     gene_rows = []
     for gene, variants in by_gene.items():
@@ -240,7 +239,7 @@ def main():
     gene_rows.sort(key=lambda r: (-r["pheno_score"], -int(r["biallelic_evidence"]),
                                   -IMPACT_RANK.get(r["max_impact"], -1), r["gene"]))
 
-    # 4. Salidas
+    # 4. Outputs
     Path(args.ranking_out).parent.mkdir(parents=True, exist_ok=True)
     with open(args.ranking_out, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(gene_rows[0].keys()) if gene_rows else ["gene"])
@@ -258,10 +257,10 @@ def main():
             for v in sorted(variants, key=lambda x: (x["chrom"], x["pos"])):
                 w.writerow({k: ("" if v.get(k) is None else v.get(k)) for k in cand_fields})
 
-    log(f"[4/4] Ranking de genes -> {args.ranking_out}")
-    log(f"      Variantes candidatas -> {args.candidates_out}")
+    log(f"[4/4] Gene ranking -> {args.ranking_out}")
+    log(f"      Candidate variants -> {args.candidates_out}")
 
-    log(f"\n--- TOP {args.top} GENES POR FENOTIPO ---")
+    log(f"\n--- TOP {args.top} GENES BY PHENOTYPE ---")
     log(f"{'gene':<14}{'pheno':>7}{'exact':>6}{'nvar':>5}{'het':>4}{'hom':>4}{'biall':>6}  {'impact':<9}{'flags'}")
     for r in gene_rows[:args.top]:
         flags = ",".join(f for f, on in (("MVA", r["mva_panel"]), ("MVAdis", r["mva_disease_annotated"]),
@@ -270,11 +269,11 @@ def main():
             f"{r['n_het']:>4}{r['n_hom_alt']:>4}{'yes' if r['biallelic_evidence'] else 'no':>6}  "
             f"{r['max_impact']:<9}{flags}")
 
-    log("\n--- CHEQUEO EXPLICITO DEL PANEL MVA ---")
+    log("\n--- EXPLICIT MVA PANEL CHECK ---")
     for gene, label in MVA_PANEL.items():
         variants = by_gene.get(gene, [])
         if not variants:
-            log(f"{gene:<10} {label:<40} sin variantes HIGH/MODERATE raras")
+            log(f"{gene:<10} {label:<40} no rare HIGH/MODERATE variants")
             continue
         for v in variants:
             log(f"{gene:<10} {v['chrom']}:{v['pos']} {v['ref']}>{v['alt']} {v['zygosity']:<8} "
@@ -284,7 +283,7 @@ def main():
 
     sac_hits = [r for r in gene_rows if r["sac_centrosome"] and not r["mva_panel"]]
     if sac_hits:
-        log("\n--- GENES SAC / CENTROSOMA CON VARIANTES ---")
+        log("\n--- SAC / CENTROSOME GENES WITH VARIANTS ---")
         for r in sac_hits:
             log(f"{r['gene']:<10} pheno={r['pheno_score']:.3f} nvar={r['n_variants']} "
                 f"biallelic={'yes' if r['biallelic_evidence'] else 'no'} impact={r['max_impact']}")

@@ -1,38 +1,38 @@
-"""Track 1, Paso 3B: enriquecimiento regulatorio con AlphaGenome Atlas.
+"""Track 1, Step 3B: regulatory enrichment with AlphaGenome Atlas.
 
-Añade a cada variante del Paso 3A las puntuaciones del scorer AVI (AlphaGenome
-Variant Impact). Es un paso de enriquecimiento puro: no descarta ninguna
-variante.
+Adds the AVI (AlphaGenome Variant Impact) scores to every variant coming out
+of Step 3A. Pure enrichment step: no variant is discarded.
 
-Etiquetas INFO que añade:
-  AVI_SCORE           puntuacion cruda del modelo
-  AVI_QUANTILE        cuantil calibrado (1 - CDF) de la variante frente a todos
-                      los SNV del genoma
-  AVI_PHRED           -10*log10(1 - cuantil). >= 20 es el 1 % superior del
-                      genoma, >= 30 el 0,1 %
-  REGULATORY_FEATURE  modalidad con mayor atribucion (MERGED_SPLICING,
-                      ALPHAMISSENSE, MAX_ABS_RNA_SEQ, ...) del scorer
-                      AVI_SCORE_FEATURE_IMPORTANCE
-  AVI_STATUS          'ok' o el motivo por el que no se pudo puntuar
-                      (p. ej. ref_mismatch cuando el alelo REF no coincide con
-                      la referencia GRCh38 del servidor)
+INFO tags added:
+  AVI_SCORE           raw model score
+  AVI_QUANTILE        calibrated quantile (1 - CDF) of the variant against all
+                      genome-wide SNVs
+  AVI_PHRED           -10*log10(1 - quantile). >= 20 is the top 1 % of the
+                      genome, >= 30 the top 0.1 %
+  REGULATORY_FEATURE  modality with the largest attribution (MERGED_SPLICING,
+                      ALPHAMISSENSE, MAX_ABS_RNA_SEQ, ...) from the
+                      AVI_SCORE_FEATURE_IMPORTANCE scorer
+  AVI_STATUS          'ok' or the reason the variant could not be scored
+                      (e.g. ref_mismatch when the REF allele does not match the
+                      server's GRCh38 reference)
 
-TARGET_GENE, previsto en docs/01-procedure.md, no lo devuelven los scorers AVI;
-el gen sigue siendo el GENE_SYMBOL de snpEff del Paso 3A.
+TARGET_GENE, planned in docs/01-procedure.md, is not returned by the AVI
+scorers; the gene remains snpEff's GENE_SYMBOL from Step 3A.
 
-Como se usa la API (alphagenome 0.9):
-  - El cliente se crea con atlas.create(api_key); AtlasClient() a secas no
-    funciona (necesita el stub gRPC). La clave se lee de ALPHAGENOME_API_KEY
-    en ~/.env (convencion de las skills de AlphaGenome) o del entorno.
-  - query_variants() devuelve {scorer: AnnData}; obs['variant'] identifica la
-    fila, X[:,0] es el score y layers['quantiles'] el cuantil.
-  - El servidor valida el alelo REF: una sola variante mal referenciada hace
-    fallar TODO el lote. Por eso, si un lote falla con ValueError, se reintenta
-    variante a variante y solo las que fallan quedan marcadas en AVI_STATUS.
-  - Los errores de infraestructura (red, cuota) se reintentan con backoff y,
-    si persisten, el script ABORTA en vez de escribir un VCF a medio anotar.
+How the API is used (alphagenome 0.9):
+  - The client is created with atlas.create(api_key); a bare AtlasClient()
+    does not work (it needs the gRPC stub). The key is read from
+    ALPHAGENOME_API_KEY in ~/.env (AlphaGenome skills convention) or from
+    the environment.
+  - query_variants() returns {scorer: AnnData}; obs['variant'] identifies the
+    row, X[:,0] is the score and layers['quantiles'] the quantile.
+  - The server validates the REF allele: one mis-referenced variant fails the
+    WHOLE batch. So when a batch fails with ValueError it is retried variant
+    by variant, and only the offenders are marked in AVI_STATUS.
+  - Infrastructure errors (network, quota) are retried with backoff and, if
+    they persist, the script ABORTS instead of writing a half-annotated VCF.
 
-Uso:
+Usage:
     python step3b_alphagenome.py
     python step3b_alphagenome.py --batch-size 100 --workers 8
 """
@@ -78,8 +78,8 @@ def load_api_key() -> str:
                         key = line.split("=", 1)[1].strip().strip('"').strip("'")
                         break
     if not key:
-        sys.exit("[-] Falta ALPHAGENOME_API_KEY (en el entorno o en ~/.env).\n"
-                 "    Guardala con: printf 'Enter ALPHAGENOME_API_KEY: ' && read -s v && echo \"ALPHAGENOME_API_KEY=$v\" >> ~/.env")
+        sys.exit("[-] ALPHAGENOME_API_KEY is missing (environment or ~/.env).\n"
+                 "    Save it with: printf 'Enter ALPHAGENOME_API_KEY: ' && read -s v && echo \"ALPHAGENOME_API_KEY=$v\" >> ~/.env")
     return key
 
 
@@ -87,11 +87,11 @@ def build_client():
     try:
         from alphagenome.atlas import atlas
     except ImportError as exc:
-        sys.exit(f"[-] No se pudo importar alphagenome ({exc}). Instalalo con: pip install alphagenome")
+        sys.exit(f"[-] Could not import alphagenome ({exc}). Install it with: pip install alphagenome")
     try:
         return atlas.create(load_api_key())
     except Exception as exc:  # noqa: BLE001
-        sys.exit(f"[-] No se pudo crear el cliente de Atlas ({exc}).")
+        sys.exit(f"[-] Could not create the Atlas client ({exc}).")
 
 
 def format_variant_id(chrom, pos, ref, alt):
@@ -100,7 +100,7 @@ def format_variant_id(chrom, pos, ref, alt):
 
 
 def to_atlas_str(vid: str) -> str:
-    """chr15:100:C:T -> chr15:100:C>T (formato de genome.Variant.from_str)."""
+    """chr15:100:C:T -> chr15:100:C>T (genome.Variant.from_str format)."""
     c, p, r, a = vid.split(":")
     return f"{c}:{p}:{r}>{a}"
 
@@ -133,7 +133,7 @@ def parse_results(res) -> dict[str, dict]:
 
 
 def query_batch(client, variant_ids: list[str], workers: int) -> tuple[dict[str, dict], dict[str, str]]:
-    """Devuelve (anotaciones, errores_por_variante). Aborta si la API no responde."""
+    """Returns (annotations, per-variant errors). Aborts if the API does not respond."""
     from alphagenome.data import genome
 
     def run(ids):
@@ -145,9 +145,9 @@ def query_batch(client, variant_ids: list[str], workers: int) -> tuple[dict[str,
         try:
             return parse_results(run(variant_ids)), errors
         except (ValueError, NotImplementedError) as exc:
-            # Validacion del servidor (REF no coincide, contig desconocido,
-            # tipo de variante no soportado): afecta a una variante, pero
-            # tumba el lote. Se resuelve una a una.
+            # Server-side validation (REF mismatch, unknown contig, unsupported
+            # variant type): it concerns one variant but brings the whole
+            # batch down. Resolve variant by variant.
             if len(variant_ids) == 1:
                 errors[variant_ids[0]] = classify_error(exc)
                 return {}, errors
@@ -157,12 +157,12 @@ def query_batch(client, variant_ids: list[str], workers: int) -> tuple[dict[str,
                 annotations.update(a)
                 errors.update(e)
             return annotations, errors
-        except Exception as exc:  # noqa: BLE001  errores de red / gRPC / cuota
+        except Exception as exc:  # noqa: BLE001  network / gRPC / quota errors
             wait = 2 ** attempt + 1
-            log(f"    aviso: lote fallido ({type(exc).__name__}: {str(exc)[:120]}); reintento en {wait}s")
+            log(f"    warning: batch failed ({type(exc).__name__}: {str(exc)[:120]}); retrying in {wait}s")
             time.sleep(wait)
-    sys.exit(f"[-] La API de Atlas no respondio tras {MAX_RETRIES} intentos. "
-             f"El VCF de salida esta incompleto; no lo uses.")
+    sys.exit(f"[-] The Atlas API did not respond after {MAX_RETRIES} attempts. "
+             f"The output VCF is incomplete; do not use it.")
 
 
 def classify_error(exc: Exception) -> str:
@@ -182,8 +182,8 @@ def is_snv(vid: str) -> bool:
 
 
 def flush_batch(client, batch, outfile, workers, stats):
-    # Atlas (alphagenome 0.9, 2026-09) responde NotImplementedError a todo
-    # indel: se marcan sin gastar una llamada. Solo se consultan los SNV.
+    # Atlas (alphagenome 0.9, 2026-09) answers NotImplementedError to every
+    # indel: they are marked without spending a call. Only SNVs are queried.
     ids = [vid for _, vid in batch if is_snv(vid)]
     annotations, errors = query_batch(client, ids, workers) if ids else ({}, {})
     for parts, vid in batch:
@@ -205,7 +205,7 @@ def flush_batch(client, batch, outfile, workers, stats):
 
 def run_step3b(input_vcf, output_vcf, batch_size, workers):
     client = build_client()
-    log(f"[+] Enriqueciendo {input_vcf} -> {output_vcf}")
+    log(f"[+] Enriching {input_vcf} -> {output_vcf}")
 
     batch, total, header_done = [], 0, False
     stats = {"scored": 0, "unscored": 0}
@@ -233,28 +233,28 @@ def run_step3b(input_vcf, output_vcf, batch_size, workers):
                 total += flush_batch(client, batch, outfile, workers, stats)
                 batch = []
                 rate = total / max(time.time() - start, 1e-9)
-                log(f"    {total:,} variantes ({rate:.1f}/s) | puntuadas {stats['scored']:,} | sin puntuar {stats['unscored']:,}")
+                log(f"    {total:,} variants ({rate:.1f}/s) | scored {stats['scored']:,} | unscored {stats['unscored']:,}")
         if batch:
             total += flush_batch(client, batch, outfile, workers, stats)
 
     if not header_done:
-        sys.exit(f"[-] {input_vcf} no tiene linea #CHROM; el VCF de entrada esta vacio o corrupto.")
+        sys.exit(f"[-] {input_vcf} has no #CHROM line; the input VCF is empty or corrupt.")
 
-    log(f"\n[OK] Paso 3B: {total:,} variantes escritas, {stats['scored']:,} con AVI, "
-        f"{stats['unscored']:,} sin puntuar (ver AVI_STATUS) en {(time.time() - start) / 60:.1f} min -> {output_vcf}")
+    log(f"\n[OK] Step 3B: {total:,} variants written, {stats['scored']:,} with AVI, "
+        f"{stats['unscored']:,} unscored (see AVI_STATUS) in {(time.time() - start) / 60:.1f} min -> {output_vcf}")
     return total
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Paso 3B: enriquecimiento con AlphaGenome Atlas (AVI)")
+    ap = argparse.ArgumentParser(description="Step 3B: enrichment with AlphaGenome Atlas (AVI)")
     ap.add_argument("--input", default=str(DEFAULT_INPUT))
     ap.add_argument("-o", "--output", default=str(DEFAULT_OUTPUT))
-    ap.add_argument("--batch-size", type=int, default=100, help="variantes por llamada")
-    ap.add_argument("--workers", type=int, default=8, help="peticiones gRPC en vuelo dentro de un lote")
+    ap.add_argument("--batch-size", type=int, default=100, help="variants per call")
+    ap.add_argument("--workers", type=int, default=8, help="in-flight gRPC requests within a batch")
     args = ap.parse_args()
 
     if not Path(args.input).exists():
-        sys.exit(f"[-] No se encontro el VCF de entrada: {args.input}\n    Ejecuta antes el Paso 3A.")
+        sys.exit(f"[-] Input VCF not found: {args.input}\n    Run Step 3A first.")
     run_step3b(args.input, args.output, args.batch_size, args.workers)
 
 

@@ -1,27 +1,27 @@
-"""Track 1, Paso 5: score epcr y CSV de submission.
+"""Track 1, Step 5: epcr score and submission CSV.
 
-Entrada: data/track1_step4_candidates.tsv (Paso 4). Salida: el CSV con el
-formato exacto que valida el Space (proband PROBAND01, cromosomas con
-prefijo chr, <= 10 filas, epcr en (0,1], finding_type).
+Input: data/track1_step4_candidates.tsv (Step 4). Output: the CSV in the exact
+format the Space validates (proband PROBAND01, chromosomes with the chr
+prefix, <= 10 rows, epcr in (0,1], finding_type).
 
-Como se construye cada fila:
-  * Por gen. Si el gen tiene >= 2 variantes heterocigotas, las dos mejores
-    van juntas en UNA fila como par heterocigoto compuesto (columnas _1 y
-    _2), que es el modelo esperable en MVA. Una variante homocigota alt va
-    sola. Un gen con una sola het va solo, con penalizacion de herencia.
-  * epcr crudo = media geometrica ponderada de fenotipo, patogenicidad,
-    herencia y frecuencia (src/epcr.py), con un bonus x1.2 para genes del
-    panel MVA o anotados a la enfermedad MVA en HPO.
-  * Separacion: se conservan --max-rows filas y cada una queda como maximo
-    en --tail-ratio veces la anterior. F-max barre cada valor distinto de
-    epcr como umbral, asi que filas casi empatadas hunden la precision; una
-    caida geometrica obliga a decidir el orden.
+How each row is built:
+  * Per gene. If a gene has >= 2 heterozygous variants, the two best go
+    together in ONE row as a compound-heterozygous pair (columns _1 and _2),
+    which is the expected model in MVA. A homozygous-alt variant goes alone.
+    A gene with a single het goes alone, with an inheritance penalty.
+  * raw epcr = weighted geometric mean of phenotype, pathogenicity,
+    inheritance and frequency (src/epcr.py), with a x1.2 bonus for genes in
+    the MVA panel or annotated to the MVA disease in HPO.
+  * Separation: --max-rows rows are kept and each one is capped at
+    --tail-ratio times the previous one. F-max sweeps every distinct epcr as
+    a threshold, so near-tied rows sink precision; a geometric decay forces a
+    ranking decision.
 
-Al final imprime una tabla "si la fila k fuera la verdadera": rank points
-y F-max que devolveria el leaderboard, con la misma logica que su
-evaluation.py. Sirve para ver cuanto cuesta cada fila adicional.
+At the end it prints an "if row k were the true one" table: rank points and
+F-max the leaderboard would return, with the same logic as its evaluation.py.
+It shows what every extra row costs.
 
-Uso:
+Usage:
     python track1_step5_submission.py --username <hf-user> --model variant-filter-v1
     python track1_step5_submission.py --max-rows 3 --tail-ratio 0.5
 """
@@ -42,7 +42,7 @@ from src.epcr import (CandidateRow, assign_epcr, combine, frequency_score,  # no
 
 DEFAULT_INPUT = REPO_ROOT / "data" / "track1_step4_candidates.tsv"
 OUTPUT_DIR = REPO_ROOT / "output" / "track1"
-PROBAND_ID = "PROBAND01"          # unico id aceptado por el Space (tabs/submit_track1.py)
+PROBAND_ID = "PROBAND01"          # the only id the Space accepts (tabs/submit_track1.py)
 MVA_BONUS = 1.2
 
 
@@ -86,13 +86,13 @@ def note_for(v: dict, s: dict) -> str:
 
 
 def build_rows(variants: list[dict], chr_prefix: bool, max_af: float = 0.01) -> list[CandidateRow]:
-    """Agrupa por gen y arma filas. Descarta variantes con gnomAD AF > max_af.
+    """Groups by gene and builds rows. Discards variants with gnomAD AF > max_af.
 
-    La sustraccion de dbSNP Common del Paso 2 falla en muchos indels (dbSNP
-    los representa con otra normalizacion, asi que la clave exacta
-    chrom:pos:ref:alt no coincide): el Paso 3A encontro indels "raros" con
-    AF 0.34-0.54 en gnomAD. El umbral es el mismo 1 % de la procedure; no se
-    baja mas por la caucion de efecto fundador de 00-references.md seccion 4.
+    Step 2's dbSNP Common subtraction misses many indels (dbSNP represents
+    them with a different normalisation, so the exact chrom:pos:ref:alt key
+    does not match): Step 3A found "rare" indels with gnomAD AF 0.34-0.54.
+    The threshold is the procedure's 1 %; it is not lowered further because
+    of the founder-effect caution in 00-references.md section 4.
     """
     by_gene: dict[str, list[tuple[dict, dict]]] = defaultdict(list)
     for v in variants:
@@ -109,12 +109,12 @@ def build_rows(variants: list[dict], chr_prefix: bool, max_af: float = 0.01) -> 
         hets = [(v, s) for v, s in items if v["zygosity"] == "HET"]
         homs = [(v, s) for v, s in items if v["zygosity"] == "HOM_ALT"]
         used = set()
-        for v, s in homs:                                   # homocigota: fila propia
+        for v, s in homs:                                   # homozygous: its own row
             rows.append(CandidateRow((variant_key(v, chr_prefix),), s["raw"], gene, note_for(v, s)))
             used.add(id(v))
-        if len(hets) >= 2:                                  # par heterocigoto compuesto
+        if len(hets) >= 2:                                  # compound-heterozygous pair
             (v1, s1), (v2, s2) = hets[0], hets[1]
-            raw = (s1["raw"] * s2["raw"]) ** 0.5             # el par vale lo que su miembro mas debil arrastra
+            raw = (s1["raw"] * s2["raw"]) ** 0.5             # the pair is dragged down by its weaker member
             rows.append(CandidateRow((variant_key(v1, chr_prefix), variant_key(v2, chr_prefix)),
                                      round(raw, 4), gene, f"compound-het | {note_for(v1, s1)} | {note_for(v2, s2)}"))
             used.update((id(v1), id(v2)))
@@ -126,32 +126,32 @@ def build_rows(variants: list[dict], chr_prefix: bool, max_af: float = 0.01) -> 
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Paso 5: epcr y CSV de submission")
+    ap = argparse.ArgumentParser(description="Step 5: epcr and submission CSV")
     ap.add_argument("--input", default=str(DEFAULT_INPUT))
-    ap.add_argument("--username", default="team", help="usuario o equipo de HF para el nombre del CSV")
-    ap.add_argument("--model", default="hpo-epcr-v1", help="nombre del modelo para el nombre del CSV")
-    ap.add_argument("--max-rows", type=int, default=5, help="filas a enviar (maximo 10)")
-    ap.add_argument("--tail-ratio", type=float, default=0.6, help="cada fila <= ratio x la anterior")
+    ap.add_argument("--username", default="team", help="HF user or team name for the CSV file name")
+    ap.add_argument("--model", default="hpo-epcr-v1", help="model name for the CSV file name")
+    ap.add_argument("--max-rows", type=int, default=5, help="rows to submit (maximum 10)")
+    ap.add_argument("--tail-ratio", type=float, default=0.6, help="each row <= ratio x the previous one")
     ap.add_argument("--top-cap", type=float, default=0.95)
-    ap.add_argument("--no-chr-prefix", action="store_true", help="emitir '1' en vez de 'chr1'")
+    ap.add_argument("--no-chr-prefix", action="store_true", help="emit '1' instead of 'chr1'")
     ap.add_argument("--secondary-from", type=int, default=None,
-                    help="filas desde esta posicion se marcan finding_type=secondary")
+                    help="rows from this position onwards are marked finding_type=secondary")
     ap.add_argument("--max-af", type=float, default=0.01,
-                    help="descartar variantes con gnomAD AF (genomas o exomas) mayor que esto")
+                    help="discard variants with gnomAD AF (genomes or exomes) above this")
     args = ap.parse_args()
 
     if not Path(args.input).exists():
-        sys.exit(f"[-] No se encontro {args.input}. Ejecuta antes el Paso 4.")
+        sys.exit(f"[-] {args.input} not found. Run Step 4 first.")
     if not 1 <= args.max_rows <= 10:
-        sys.exit("[-] --max-rows debe estar entre 1 y 10 (limite del leaderboard)")
+        sys.exit("[-] --max-rows must be between 1 and 10 (leaderboard limit)")
 
     with open(args.input, newline="") as fh:
         variants = list(csv.DictReader(fh, delimiter="\t"))
-    print(f"[+] {len(variants):,} variantes candidatas leidas de {args.input}")
+    print(f"[+] {len(variants):,} candidate variants read from {args.input}")
 
     rows = build_rows(variants, chr_prefix=not args.no_chr_prefix, max_af=args.max_af)
-    print(f"    {len(rows):,} filas candidatas construidas (genes con >=2 het van como par; "
-          f"gnomAD AF > {args.max_af} descartadas)")
+    print(f"    {len(rows):,} candidate rows built (genes with >=2 het go as a pair; "
+          f"gnomAD AF > {args.max_af} discarded)")
     ranked = assign_epcr(rows, max_rows=args.max_rows, tail_ratio=args.tail_ratio, top_cap=args.top_cap)
     if args.secondary_from:
         for r in ranked[args.secondary_from - 1:]:
@@ -173,14 +173,14 @@ def main():
                         "epcr": f"{r.epcr:.4f}", "finding_type": r.finding_type, "notes": r.notes})
     print(f"[OK] Submission -> {out_path}")
 
-    print("\n--- FILAS ENVIADAS ---")
+    print("\n--- SUBMITTED ROWS ---")
     for i, r in enumerate(ranked, 1):
         vs = " + ".join(f"{c}:{p} {a}>{b}" for c, p, a, b in r.variants)
         print(f"#{i} epcr={r.epcr:.4f} raw={r.raw_score:.4f} {r.gene:<10} {vs}")
         print(f"    {r.notes}")
 
-    print("\n--- SI LA FILA k FUERA LA VERDADERA (misma logica que evaluation.py del Space) ---")
-    print(f"{'k':>2} {'epcr':>7} {'rank_pts':>8} {'F-max':>6} {'umbral':>7}")
+    print("\n--- IF ROW k WERE THE TRUE ONE (same logic as the Space's evaluation.py) ---")
+    print(f"{'k':>2} {'epcr':>7} {'rank_pts':>8} {'F-max':>6} {'thresh':>7}")
     for w in what_if_table(ranked):
         print(f"{w['if_true_row']:>2} {w['epcr']:>7.4f} {w['rank_points']:>8.1f} {w['f_max']:>6.3f} "
               f"{w['f_max_threshold'] if w['f_max_threshold'] is not None else '-':>7}")

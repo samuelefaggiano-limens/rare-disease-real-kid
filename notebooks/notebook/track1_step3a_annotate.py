@@ -1,22 +1,21 @@
-"""Track 1, Paso 3A: anotacion funcional (SnpEff ya aplicado) + MyVariant.info.
+"""Track 1, Step 3A: functional annotation (snpEff already applied) + MyVariant.info.
 
-Lee el VCF anotado por SnpEff, se queda con los impactos HIGH/MODERATE y les
-añade los metadatos de MyVariant.info (gnomAD, CADD, REVEL, ClinVar, OMIM,
-LoFtool) como etiquetas INFO.
+Reads the snpEff-annotated VCF, keeps HIGH/MODERATE impacts and adds the
+MyVariant.info metadata (gnomAD, CADD, REVEL, ClinVar, OMIM) as INFO tags.
 
-Optimizaciones respecto a la version anterior:
-  - El campo ANN se extrae con una busqueda dirigida sobre la cadena INFO en vez
-    de construir un dict con todos los campos: 9,2x mas rapido, y se ejecuta una
-    vez por cada una de las ~591k lineas de entrada.
-  - Los lotes se piden en paralelo con un pool de hilos. El coste aqui es
-    latencia de red, no CPU, asi que es donde esta el grueso del tiempo.
-  - Una unica requests.Session reutiliza la conexion TCP/TLS entre lotes en vez
-    de renegociar el handshake en cada peticion.
-  - Si un lote agota los reintentos el script FALLA en vez de escribir en
-    silencio variantes sin anotar. Un VCF a medio anotar que parece completo es
-    peor que un error.
+Optimisations over the previous version:
+  - The ANN field is extracted with a targeted search on the INFO string
+    instead of building a dict of every field: 9.2x faster, and it runs once
+    for each of the ~591k input lines.
+  - Batches are requested in parallel with a thread pool. The cost here is
+    network latency, not CPU, so that is where the bulk of the time goes.
+  - A single requests.Session reuses the TCP/TLS connection between batches
+    instead of renegotiating the handshake on every request.
+  - If a batch exhausts its retries the script FAILS instead of silently
+    writing unannotated variants. A half-annotated VCF that looks complete is
+    worse than an error.
 
-Uso:
+Usage:
     python track1_step3a_annotate.py
     python track1_step3a_annotate.py --workers 8 --batch-size 1000
 """
@@ -39,14 +38,14 @@ API_URL = "https://myvariant.info/v1/variant"
 MAX_RETRIES = 5
 RETRY_STATUS = (429, 500, 502, 503, 504)
 
-# El VCF del paciente es GRCh38. MyVariant.info indexa hg19 por defecto: sin
-# assembly=hg38 el 97 % de las variantes sale "notfound" y el 3 % restante son
-# coincidencias de coordenada en hg19 (anotaciones de OTRA variante).
+# The patient VCF is GRCh38. MyVariant.info indexes hg19 by default: without
+# assembly=hg38, 97 % of the variants come back "notfound" and the remaining
+# 3 % are coordinate coincidences in hg19 (annotations of ANOTHER variant).
 ASSEMBLY = "hg38"
 
-# Campos disponibles en el indice hg38 (comprobado contra /v1/metadata/fields
-# el 2026-09-17). CADD llega via dbNSFP (el dataset 'cadd' es solo hg19);
-# LoFtool no existe en MyVariant, asi que LOFTOOL_SCORE no se emite.
+# Fields available in the hg38 index (checked against /v1/metadata/fields on
+# 2026-09-17). CADD comes via dbNSFP (the 'cadd' dataset is hg19-only);
+# LoFtool does not exist in MyVariant, so LOFTOOL_SCORE is not emitted.
 FIELDS = (
     "gnomad_genome.af.af,gnomad_exome.af.af,dbnsfp.cadd.phred,dbnsfp.revel.score,"
     "clinvar.rcv.clinical_significance,clinvar.rcv.review_status,"
@@ -69,14 +68,14 @@ NEW_HEADERS = [
 
 
 class AnnotationError(RuntimeError):
-    """Un lote no pudo anotarse tras agotar los reintentos."""
+    """A batch could not be annotated after exhausting the retries."""
 
 
 def extract_ann(info):
-    """Devuelve el valor del campo ANN sin parsear el resto del INFO.
+    """Returns the value of the ANN field without parsing the rest of INFO.
 
-    Reemplaza a dict(item.split('=', 1) for item in info.split(';')), que
-    construia un diccionario entero de ~15 claves para leer solo una.
+    Replaces dict(item.split('=', 1) for item in info.split(';')), which
+    built a whole ~15-key dictionary to read a single one.
     """
     if info.startswith("ANN="):
         return info[4:].split(";", 1)[0]
@@ -87,18 +86,18 @@ def extract_ann(info):
 
 
 def format_hgvs_id(chrom, pos, ref, alt):
-    """HGVS genomico que MyVariant reconoce. 'g.100AT>A' NO es HGVS valido:
-    los indels van como del / ins / delins sobre las bases que cambian."""
+    """Genomic HGVS that MyVariant recognises. 'g.100AT>A' is NOT valid HGVS:
+    indels go as del / ins / delins over the bases that actually change."""
     c = chrom if chrom.startswith("chr") else f"chr{chrom}"
     pos = int(pos)
     if len(ref) == 1 and len(alt) == 1:
         return f"{c}:g.{pos}{ref}>{alt}"
-    if len(ref) > 1 and len(alt) == 1 and ref[0] == alt[0]:      # delecion
+    if len(ref) > 1 and len(alt) == 1 and ref[0] == alt[0]:      # deletion
         start, end = pos + 1, pos + len(ref) - 1
         return f"{c}:g.{start}del" if start == end else f"{c}:g.{start}_{end}del"
-    if len(ref) == 1 and len(alt) > 1 and ref[0] == alt[0]:      # insercion
+    if len(ref) == 1 and len(alt) > 1 and ref[0] == alt[0]:      # insertion
         return f"{c}:g.{pos}_{pos + 1}ins{alt[1:]}"
-    if ref[0] == alt[0]:                                         # delins con base ancla
+    if ref[0] == alt[0]:                                         # delins with anchor base
         start, end = pos + 1, pos + len(ref) - 1
         rng = f"{start}" if start == end else f"{start}_{end}"
         return f"{c}:g.{rng}delins{alt[1:]}"
@@ -107,7 +106,7 @@ def format_hgvs_id(chrom, pos, ref, alt):
 
 
 def make_session():
-    """Session con pool de conexiones dimensionado para los hilos en vuelo."""
+    """Session with a connection pool sized for the in-flight threads."""
     session = requests.Session()
     adapter = requests.adapters.HTTPAdapter(pool_connections=16, pool_maxsize=16)
     session.mount("https://", adapter)
@@ -116,9 +115,9 @@ def make_session():
 
 
 def query_myvariant_batch(session, ids):
-    """Consulta un lote. Lanza AnnotationError si no se consigue respuesta."""
+    """Queries one batch. Raises AnnotationError if no response is obtained."""
     payload = {"ids": ",".join(ids), "fields": FIELDS, "assembly": ASSEMBLY}
-    last_error = "sin detalle"
+    last_error = "no detail"
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -140,8 +139,8 @@ def query_myvariant_batch(session, ids):
             time.sleep(2 ** attempt + 1)
 
     raise AnnotationError(
-        f"Lote de {len(ids)} variantes fallido tras {MAX_RETRIES} intentos ({last_error}). "
-        f"Primer id del lote: {ids[0]}"
+        f"Batch of {len(ids)} variants failed after {MAX_RETRIES} attempts ({last_error}). "
+        f"First id in the batch: {ids[0]}"
     )
 
 
@@ -150,7 +149,7 @@ def parse_metadata(data):
     if not data or "notfound" in data:
         return meta
 
-    meta["MYVARIANT_HIT"] = None  # flag sin valor
+    meta["MYVARIANT_HIT"] = None  # flag without a value
 
     for key, tag in (("gnomad_genome", "GNOMAD_AF"), ("gnomad_exome", "GNOMAD_EXOME_AF")):
         block = data.get(key)
@@ -191,7 +190,7 @@ def parse_metadata(data):
                 for x in (o if isinstance(o, list) else [o]):
                     if x and str(x) not in omims:
                         omims.append(str(x))
-            # El RCV mas informativo: patogenico > VUS > benigno > sin aporte
+            # The most informative RCV: pathogenic > VUS > benign > no assertion
             rank = 3 if "athogenic" in sig else 2 if "ncertain" in sig else 1 if "enign" in sig else 0
             if best is None or rank > best[0]:
                 best = (rank, r)
@@ -206,7 +205,7 @@ def parse_metadata(data):
 
 
 def write_chunk(chunk, meta_maps, outfile):
-    """Escribe un grupo de lotes ya anotados, conservando el orden del VCF."""
+    """Writes a group of already-annotated batches, preserving VCF order."""
     written = 0
     for (records, ids), meta_map in zip(chunk, meta_maps):
         for rec, vid in zip(records, ids):
@@ -232,7 +231,7 @@ def process_pipeline(input_vcf, output_vcf, batch_size, workers):
 
     total_read = total_kept = 0
     batch_records, batch_ids = [], []
-    chunk = []            # lotes pendientes de pedir en paralelo
+    chunk = []            # batches waiting to be requested in parallel
     start = time.time()
 
     with open_fn(input_vcf, "rt", encoding="utf-8") as infile, \
@@ -243,8 +242,8 @@ def process_pipeline(input_vcf, output_vcf, batch_size, workers):
             nonlocal total_kept, chunk
             if not chunk:
                 return
-            # executor.map conserva el orden de entrada, asi que el VCF de salida
-            # mantiene el orden por coordenada aunque los lotes vuelvan desordenados.
+            # executor.map preserves input order, so the output VCF keeps its
+            # coordinate order even when batches return out of order.
             meta_maps = list(pool.map(lambda b: query_myvariant_batch(session, b[1]), chunk))
             total_kept += write_chunk(chunk, meta_maps, outfile)
             chunk = []
@@ -252,7 +251,7 @@ def process_pipeline(input_vcf, output_vcf, batch_size, workers):
 
         def log_progress():
             rate = total_kept / max(time.time() - start, 1e-9)
-            print(f"    anotadas {total_kept:,} variantes ({rate:.0f}/s)", flush=True)
+            print(f"    annotated {total_kept:,} variants ({rate:.0f}/s)", flush=True)
 
         for line in infile:
             if line.startswith("##"):
@@ -303,32 +302,32 @@ def process_pipeline(input_vcf, output_vcf, batch_size, workers):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Paso 3A: anotacion con MyVariant.info")
+    ap = argparse.ArgumentParser(description="Step 3A: annotation with MyVariant.info")
     ap.add_argument("--input", default=str(DEFAULT_INPUT))
     ap.add_argument("-o", "--output", default=str(DEFAULT_OUTPUT))
     ap.add_argument("--batch-size", type=int, default=1000,
-                    help="ids por peticion (maximo admitido por la API: 1000)")
+                    help="ids per request (API maximum: 1000)")
     ap.add_argument("--workers", type=int, default=4,
-                    help="lotes en vuelo simultaneos; subirlo puede provocar 429")
+                    help="simultaneous in-flight batches; raising it may trigger 429s")
     args = ap.parse_args()
 
     if not Path(args.input).exists():
-        sys.exit(f"[-] No se encontro el VCF de entrada: {args.input}\n"
-                 f"    Genera primero snpeff_annotated.vcf con SnpEff (ver CLAUDE.md).")
+        sys.exit(f"[-] Input VCF not found: {args.input}\n"
+                 f"    Generate snpeff_annotated.vcf with snpEff first (see CLAUDE.md).")
 
-    print(f"[+] Anotando {args.input} -> {args.output}")
-    print(f"    lotes de {args.batch_size}, {args.workers} en paralelo")
+    print(f"[+] Annotating {args.input} -> {args.output}")
+    print(f"    batches of {args.batch_size}, {args.workers} in parallel")
 
     try:
         total_read, total_kept, elapsed = process_pipeline(
             args.input, args.output, args.batch_size, args.workers
         )
     except AnnotationError as exc:
-        sys.exit(f"[-] {exc}\n    El VCF de salida esta incompleto; no lo uses.")
+        sys.exit(f"[-] {exc}\n    The output VCF is incomplete; do not use it.")
 
-    print(f"\n[OK] {total_read:,} variantes leidas, {total_kept:,} HIGH/MODERATE anotadas "
-          f"en {elapsed / 60:.1f} min")
-    print(f"     Resultado: {args.output}")
+    print(f"\n[OK] {total_read:,} variants read, {total_kept:,} HIGH/MODERATE annotated "
+          f"in {elapsed / 60:.1f} min")
+    print(f"     Result: {args.output}")
 
 
 if __name__ == "__main__":

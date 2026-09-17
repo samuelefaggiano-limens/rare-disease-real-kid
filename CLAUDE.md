@@ -135,7 +135,7 @@ From `README.md` §"Project Workflow & Guidelines", enforced by team convention 
   - `docs/01-procedure.md` — the plan; every step has an **Experiments** table to fill in as work completes.
   - `docs/02-findings.md` — record insights immediately, attributed to the notebook that produced them.
   - `docs/00-references.md` — every paper or external source consulted.
-- Docs and README are in English; the pipeline scripts carry Spanish comments. Either is fine — don't rewrite existing ones.
+- Everything is in English: docs, README, notebooks, and the docstrings, comments and log messages of the pipeline scripts (team decision, 2026-09-17).
 
 ## Submission constraints that shape the code
 
