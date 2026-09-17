@@ -62,7 +62,8 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results                                                                                                                                                                                 |
 | :--- | :--- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38. | Processed 5M variants -> 2.64M survived intrinsic QC. Subtraction dropped 4.4M common variants. Final result: 591,339 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz`. |
+| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38, one tabix lookup per variant. | Processed 5,012,204 variants -> 4,428,273 survived intrinsic QC. Subtraction dropped 3,836,934 common variants. Final result: 591,339 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz` (405 s). |
+| `notebooks/notebook/run_step2_prefilter.py` | Same thresholds as exp01, re-implemented as three sequential passes (QC -> single scan of dbSNP -> rewrite) with bounded memory. Re-run on macOS (Apple Silicon) on 2026-09-17 to reconcile the 591,339 vs 380,292 (`02-findings.md`) discrepancy. | Reproduces exp01: 4,428,273 QC survivors, 3,836,941 dropped as common, **591,339 rare variants** (11.8%) in 1.4 min. 380,292 was wrong and has been corrected in `02-findings.md`. |
 
 ### Step 3: VCF Annotation & Filtering
 *   **Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz` containing ~591,339 variants).
@@ -112,12 +113,22 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 *   **Output:** 
     An annotated dataset (VCF file) containing our rare variants appended with their respective AlphaGenome scores, target genes, and regulatory metadata.
     The output of this stage must be saved as a standard VCF `(track1_step3b_regulatory_annotated.vcf.gz)` containing all enriched variants without filtering.
+*   **Implementation notes (`notebooks/notebook/step3b_alphagenome.py`, alphagenome 0.9.0, verified against the live API on 2026-09-17):**
+    *   The client must be created with `atlas.create(api_key)`; a bare `AtlasClient()` has no gRPC stub. The key is read from `ALPHAGENOME_API_KEY` (env or `~/.env`).
+    *   Scorers used: `AVI_SCORE` (raw score, plus a `quantiles` layer) and `AVI_SCORE_FEATURE_IMPORTANCE` (18 modalities). Tags written: `AVI_SCORE`, `AVI_QUANTILE`, `AVI_PHRED` (= -10 log10(1 - quantile); >= 20 is the top 1 % of genome-wide SNVs, >= 30 the top 0.1 %), `REGULATORY_FEATURE` (modality with the largest attribution, e.g. `MERGED_SPLICING`, `ALPHAMISSENSE`, `MAX_ABS_RNA_SEQ`), `AVI_STATUS`.
+    *   **`TARGET_GENE` is not returned by the AVI scorers** and is therefore not written; the gene remains snpEff's `GENE_SYMBOL` from Step 3A.
+    *   The server validates the REF allele against GRCh38 and one bad variant fails the whole batch; the script falls back to single-variant queries and records `AVI_STATUS=ref_mismatch` for the offenders instead of aborting. Infrastructure errors still abort after 5 retries (fail-loud contract).
+    *   Downstream use: Step 5 feeds `AVI_PHRED` into the pathogenicity component on the same Phred scale as CADD.
 
 * **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| snpEff `GRCh38.99` database (local build) | The versioned `snpEff.zip` is SnpEff 4.5covid19 (2020-04-15). Its `download GRCh38.99` fails: SourceForge has no `v4_5` databases (only `v4_3` GRCh38.86/92) and the newer Azure repository host no longer resolves (NXDOMAIN). The database is therefore **built locally** from Ensembl release 99 (GTF + primary-assembly FASTA + CDS + protein FASTA) with `snpEff build -gtf22 GRCh38.99`, which is the same Ensembl 99 gene set the prebuilt database was derived from. | Built 2026-09-17 in 1.5 min (`snpEffectPredictor.bin`, 117 MB). The build's protein check reports "Not found" for every transcript because Ensembl FASTA ids carry versions (`ENST…​.2`) and the GTF ids do not; it is a validation-only step. Sanity check passed: HBB rs334 chr11:5227002 T>A -> `missense_variant p.Glu7Val`, and a BUB1B intronic control -> `intron_variant c.180-62G>A`. |
+| snpEff `-canon` annotation | `java -Xmx8g -jar snpEff/snpEff.jar -canon -noStats GRCh38.99 data/track1_step2_rare_variants.vcf.gz > snpeff_annotated.vcf` | 591,339 / 591,339 variants annotated in 15 s. Impact of the canonical annotation: 588,497 MODIFIER, 1,324 MODERATE, 1,316 LOW, **202 HIGH**. |
+| `notebooks/notebook/track1_step3a_annotate.py` | Reads the snpEff `-canon` output, keeps HIGH/MODERATE, adds MyVariant.info fields (batched, threaded, fail-loud). **Fixed 2026-09-17:** queries now send `assembly=hg38` (the default hg19 lookup returned 97 % "notfound" and 3 % wrong-variant hits), indels are sent as valid HGVS `del`/`ins`/`delins`, CADD comes from `dbnsfp.cadd.phred` (the `cadd` dataset is hg19-only), OMIM from ClinVar conditions; LoFtool is not in MyVariant and is no longer emitted. | 1,526 HIGH/MODERATE variants (202 HIGH, 1,324 MODERATE; 1,219 SNVs, 307 indels) in 0.3 min. Coverage: MyVariant hit 1,525, `GNOMAD_AF` 1,481, `CADD_PHRED` 1,110, `REVEL` 864, `CLINVAR_SIG` 312, `OMIM_PHENOTYPE` 112. **1,212 of the 1,526 have gnomAD AF > 1 %** (see `02-findings.md`). |
+| `notebooks/notebook/step3b_alphagenome.py` | AlphaGenome Atlas AVI enrichment (`AVI_SCORE`, `AVI_QUANTILE`, `AVI_PHRED`, `REGULATORY_FEATURE`, `AVI_STATUS`). Indels are marked `indel_unsupported` without a call (Atlas returns `NotImplementedError` for them); per-variant fallback on server-side validation errors. | 1,526 written, **1,220 scored** (all SNVs), 306 `indel_unsupported`, 0.9 min. `AVI_PHRED` >= 20 for 257 variants, >= 30 for 13. Top modality: `CACTUS_241_WAY` 562, `ALPHAMISSENSE` 509, `PHASTCONS_470_WAY` 73, `MERGED_SPLICING` 45, `PROTEIN_TERMINATION` 18. Output: `track1_step3b_regulatory_annotated.vcf.gz`. |
+| `notebooks/notebook/track1_step3_exp01-vcf_annotating.ipynb` | Executed walkthrough of Step 3 for the team: what each tool adds, how to reproduce, and summaries computed from the three output VCFs (impact distribution, MyVariant coverage, gnomAD AF of the "rare" set, ClinVar classes, AVI status/modalities/Phred, gene-level MVA panel check). Reads the gitignored outputs; makes no API calls and prints no patient coordinates. | Impact: 202 HIGH / 1,324 MODERATE / 1,316 LOW / 588,497 MODIFIER. 1,212 of 1,526 HIGH/MODERATE have gnomAD AF > 1 %. AVI: 1,220 scored, 257 with Phred >= 20. Panel: two heterozygous *BUB1B* variants (stop-gain, ClinVar P/LP, OMIM 257300; missense absent from gnomAD), none in *CEP57*/*TRIP13*/*MAD2L1BP*. |
 
 ### Step 4: Gene Prioritization & Phenotype Matching
 *   **Action:** We now have a small list of rare, protein-altering mutations. We cross-reference the genes containing these mutations with the HPO terms generated in Step 1.
@@ -132,11 +143,17 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         4.  **Conclusion:** Because the known symptoms of a broken *BUB1B* gene perfectly align with our patient's symptoms, the mutation in *BUB1B* is prioritized as the most likely cause, effectively discarding the "noisy" mutations in *Gene A* and *Gene B*.
 *   **Targeted Search:** For this specific hackathon, we also explicitly check if the surviving variants land in known MVA genes (e.g., *BUB1B*, *CEP57*, *TRIP13*) or genes related to the **Spindle Assembly Checkpoint (SAC)** or centrosomes.
 *   **Tools:** Exomiser, Phenolyzer, or manual literature querying via PubMed.
+*   **Implementation (`notebooks/notebook/track1_step4_prioritize.py`, logic in `src/hpo.py`):**
+    *   **Gene-phenotype source:** HPO's `genes_to_phenotype.txt` + `hp.obo` (release 2026-09-01), downloaded to `data/`. 5,277 genes carry annotations. MVA itself is annotated (OMIM:257300 MVA1 -> *BUB1B*, OMIM:614114 MVA2 -> *CEP57*, OMIM:617598 MVA3 -> *TRIP13*, ORPHA:1052), *MAD2L1BP* has no HPO annotations at all.
+    *   **Why semantic similarity and not exact overlap:** of the patient's 8 terms, *BUB1B* and *CEP57* match only 3 exactly (HP:0001518, HP:0002859, HP:0004322), *TRIP13* 2, *MAD2L1BP* 0. Diseases are annotated with siblings/parents of the patient's terms (e.g. Growth delay vs. Failure to thrive), so exact overlap under-scores the true genes. We use Resnik similarity: gene annotations are propagated to ontology ancestors, each term gets an information content `IC = -ln(genes annotated / all genes)`, and a patient term scores `IC(most informative common ancestor) / IC(term)` in [0, 1]. Gene score = mean over the patient's terms.
+    *   **Inheritance:** per gene, `biallelic_evidence` = homozygous-alt variant or >= 2 heterozygous variants (compound-het candidates). MVA is autosomal recessive in every known gene.
+    *   **Targeted checks:** the 4-gene MVA panel is always printed with every surviving variant, plus a curated SAC/kinetochore/centrosome list.
+    *   **Outputs:** `output/track1/track1_step4_gene_ranking.csv` (gene-level, no coordinates) and `data/track1_step4_candidates.tsv` (variant-level; contains patient coordinates, so it stays in the gitignored `data/`).
 *   **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `notebooks/notebook/track1_step4_prioritize.py` | HPO Resnik similarity per gene + biallelic evidence + MVA panel / SAC check. Unit tests in `tests/test_hpo.py`. | Smoke-tested on a synthetic Step 3A VCF with the real ontology: *BUB1B*/*CEP57* score 0.632, *TRIP13* 0.558, a random gene (*TTN*) 0.438, an unannotated gene 0. PENDING on the real Step 3A output. |
 
 ### Step 5: Ranking and Submission
 *   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`) between 0 and 1 to each candidate variant. 
@@ -146,12 +163,17 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         2.  A high computational pathogenicity score (e.g., CADD, REVEL).
         3.  A high semantic overlap with the patient's HPO terms (Phenotype matching).
         4.  A zygosity that perfectly fits an autosomal recessive or dominant inheritance model.
-*   **Output:** Format the top candidates, ranked from highest `epcr` to lowest, into `output/track1/track1_submission_template.csv`.
+*   **Output:** Format the top candidates, ranked from highest `epcr` to lowest, into `output/track1/<username>_<model>.csv` (template: `output/track1/templates/track1_submission_template.csv`).
+*   **Implementation (`notebooks/notebook/track1_step5_submission.py`, logic in `src/epcr.py`):**
+    *   **Leaderboard contract (from the Space's public `evaluation.py` / `tabs/submit_track1.py`):** `proband_id` must be `PROBAND01`; chromosomes carry the `chr` prefix (`chr15`); max 10 rows; `epcr` in (0, 1]; rank points 100/50/25/10 for rank 1/<=3/<=5/<=10 (half credit if only one variant of a compound-het pair is recovered); **F-max is computed per variant**, sweeping every distinct `epcr` as a threshold.
+    *   **Components (each in [0, 1]):** phenotype (Step 4 score), pathogenicity (snpEff impact lifted/tempered by CADD_PHRED, REVEL, ClinVar), inheritance (1.0 for hom-alt or compound-het candidate, 0.45 for a lone het), frequency (linear in -log10 gnomAD AF between 1e-2 and 1e-5; missing = 1.0). Combined as a **weighted geometric mean** (0.35 / 0.30 / 0.20 / 0.15) so a weak axis costs multiplicatively; x1.2 bonus for MVA panel / MVA-annotated genes.
+    *   **Row construction:** genes with >= 2 hets emit one compound-het row (two best variants, `_1` + `_2`); hom-alt variants emit a single row; lone hets emit a single penalised row.
+    *   **Separation, by design:** keep `--max-rows` (default 5) and force `epcr_k <= 0.6 * epcr_{k-1}`. F-max punishes near-ties (10 rows at 0.9 cap precision at 0.1 even if the answer is among them); a forced geometric decay turns "equally good" into an explicit ranking. The script prints a what-if table (leaderboard result if row k were the truth) so the cost of every extra row is visible before submitting.
 *   **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `notebooks/notebook/track1_step5_submission.py` | epcr = weighted geometric mean + MVA bonus; compound-het pairing; geometric separation; local re-implementation of the leaderboard metrics. Unit tests in `tests/test_epcr.py`. | Smoke test (synthetic candidates): BUB1B compound-het row epcr 0.946, CEP57 hom row 0.567, tail <= 0.34. What-if: row 1 true -> 100 pts / F-max 1.0; row 2 true -> 50 pts / F-max 0.5. PENDING on real data. |
 
 ---
 

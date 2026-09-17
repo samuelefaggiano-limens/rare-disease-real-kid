@@ -39,23 +39,32 @@ API_URL = "https://myvariant.info/v1/variant"
 MAX_RETRIES = 5
 RETRY_STATUS = (429, 500, 502, 503, 504)
 
+# El VCF del paciente es GRCh38. MyVariant.info indexa hg19 por defecto: sin
+# assembly=hg38 el 97 % de las variantes sale "notfound" y el 3 % restante son
+# coincidencias de coordenada en hg19 (anotaciones de OTRA variante).
+ASSEMBLY = "hg38"
+
+# Campos disponibles en el indice hg38 (comprobado contra /v1/metadata/fields
+# el 2026-09-17). CADD llega via dbNSFP (el dataset 'cadd' es solo hg19);
+# LoFtool no existe en MyVariant, asi que LOFTOOL_SCORE no se emite.
 FIELDS = (
-    "gnomad_genome.af.af,cadd.phred,dbnsfp.revel.score,"
+    "gnomad_genome.af.af,gnomad_exome.af.af,dbnsfp.cadd.phred,dbnsfp.revel.score,"
     "clinvar.rcv.clinical_significance,clinvar.rcv.review_status,"
-    "cadd.loftool,cadd.omim"
+    "clinvar.rcv.conditions.identifiers.omim"
 )
 
 NEW_HEADERS = [
     '##INFO=<ID=GENE_SYMBOL,Number=1,Type=String,Description="Affected Gene Symbol">',
     '##INFO=<ID=CONSEQUENCE,Number=1,Type=String,Description="Physical alteration/consequence on transcript">',
     '##INFO=<ID=PUTATIVE_IMPACT,Number=1,Type=String,Description="Putative impact: HIGH, MODERATE, LOW, MODIFIER">',
-    '##INFO=<ID=GNOMAD_AF,Number=1,Type=Float,Description="gnomAD overall allele frequency">',
-    '##INFO=<ID=CADD_PHRED,Number=1,Type=Float,Description="CADD Phred pathogenicity score">',
+    '##INFO=<ID=GNOMAD_AF,Number=1,Type=Float,Description="gnomAD genomes overall allele frequency (hg38)">',
+    '##INFO=<ID=GNOMAD_EXOME_AF,Number=1,Type=Float,Description="gnomAD exomes overall allele frequency (hg38)">',
+    '##INFO=<ID=CADD_PHRED,Number=1,Type=Float,Description="CADD Phred pathogenicity score (via dbNSFP)">',
     '##INFO=<ID=REVEL,Number=1,Type=Float,Description="REVEL score">',
-    '##INFO=<ID=CLINVAR_SIG,Number=.,Type=String,Description="ClinVar clinical significance">',
-    '##INFO=<ID=CLINVAR_REVIEW_STATUS,Number=1,Type=String,Description="ClinVar review status">',
-    '##INFO=<ID=OMIM_PHENOTYPE,Number=.,Type=String,Description="OMIM phenotype IDs">',
-    '##INFO=<ID=LOFTOOL_SCORE,Number=1,Type=Float,Description="LoFtool score">',
+    '##INFO=<ID=CLINVAR_SIG,Number=.,Type=String,Description="ClinVar clinical significance (unique values, |-separated)">',
+    '##INFO=<ID=CLINVAR_REVIEW_STATUS,Number=1,Type=String,Description="ClinVar review status of the most clinically relevant RCV">',
+    '##INFO=<ID=OMIM_PHENOTYPE,Number=.,Type=String,Description="OMIM phenotype IDs from ClinVar conditions">',
+    '##INFO=<ID=MYVARIANT_HIT,Number=0,Type=Flag,Description="Variant was found in MyVariant.info (hg38)">',
 ]
 
 
@@ -78,8 +87,23 @@ def extract_ann(info):
 
 
 def format_hgvs_id(chrom, pos, ref, alt):
+    """HGVS genomico que MyVariant reconoce. 'g.100AT>A' NO es HGVS valido:
+    los indels van como del / ins / delins sobre las bases que cambian."""
     c = chrom if chrom.startswith("chr") else f"chr{chrom}"
-    return f"{c}:g.{pos}{ref}>{alt}"
+    pos = int(pos)
+    if len(ref) == 1 and len(alt) == 1:
+        return f"{c}:g.{pos}{ref}>{alt}"
+    if len(ref) > 1 and len(alt) == 1 and ref[0] == alt[0]:      # delecion
+        start, end = pos + 1, pos + len(ref) - 1
+        return f"{c}:g.{start}del" if start == end else f"{c}:g.{start}_{end}del"
+    if len(ref) == 1 and len(alt) > 1 and ref[0] == alt[0]:      # insercion
+        return f"{c}:g.{pos}_{pos + 1}ins{alt[1:]}"
+    if ref[0] == alt[0]:                                         # delins con base ancla
+        start, end = pos + 1, pos + len(ref) - 1
+        rng = f"{start}" if start == end else f"{start}_{end}"
+        return f"{c}:g.{rng}delins{alt[1:]}"
+    rng = f"{pos}" if len(ref) == 1 else f"{pos}_{pos + len(ref) - 1}"
+    return f"{c}:g.{rng}delins{alt}"
 
 
 def make_session():
@@ -93,7 +117,7 @@ def make_session():
 
 def query_myvariant_batch(session, ids):
     """Consulta un lote. Lanza AnnotationError si no se consigue respuesta."""
-    payload = {"ids": ",".join(ids), "fields": FIELDS}
+    payload = {"ids": ",".join(ids), "fields": FIELDS, "assembly": ASSEMBLY}
     last_error = "sin detalle"
 
     for attempt in range(MAX_RETRIES):
@@ -126,39 +150,57 @@ def parse_metadata(data):
     if not data or "notfound" in data:
         return meta
 
-    gnomad = data.get("gnomad_genome")
-    if gnomad:
-        af = gnomad.get("af", {}).get("af")
-        if af is not None:
-            meta["GNOMAD_AF"] = str(af)
+    meta["MYVARIANT_HIT"] = None  # flag sin valor
 
-    cadd = data.get("cadd")
-    if cadd:
-        if "phred" in cadd:
-            meta["CADD_PHRED"] = str(cadd["phred"])
-        if "loftool" in cadd:
-            meta["LOFTOOL_SCORE"] = str(cadd["loftool"])
-        if "omim" in cadd:
-            omim = cadd["omim"]
-            meta["OMIM_PHENOTYPE"] = (
-                "|".join(str(x) for x in omim) if isinstance(omim, list) else str(omim)
-            )
+    for key, tag in (("gnomad_genome", "GNOMAD_AF"), ("gnomad_exome", "GNOMAD_EXOME_AF")):
+        block = data.get(key)
+        if isinstance(block, list):
+            block = block[0]
+        if block:
+            af = (block.get("af") or {}).get("af")
+            if af is not None:
+                meta[tag] = str(af)
 
     dbnsfp = data.get("dbnsfp")
-    if dbnsfp and "revel" in dbnsfp:
-        revel = dbnsfp["revel"].get("score")
+    if isinstance(dbnsfp, list):
+        dbnsfp = dbnsfp[0]
+    if dbnsfp:
+        cadd = dbnsfp.get("cadd") or {}
+        if cadd.get("phred") is not None:
+            v = cadd["phred"]
+            meta["CADD_PHRED"] = str(max(v) if isinstance(v, list) else v)
+        revel = (dbnsfp.get("revel") or {}).get("score")
         if revel is not None:
-            meta["REVEL"] = str(revel)
+            meta["REVEL"] = str(max(revel) if isinstance(revel, list) else revel)
 
     clinvar = data.get("clinvar")
     if clinvar and "rcv" in clinvar:
-        rcv = clinvar["rcv"]
-        if isinstance(rcv, list):
-            rcv = rcv[0]
-        if "clinical_significance" in rcv:
-            meta["CLINVAR_SIG"] = str(rcv["clinical_significance"]).replace(" ", "_")
-        if "review_status" in rcv:
-            meta["CLINVAR_REVIEW_STATUS"] = str(rcv["review_status"]).replace(" ", "_")
+        rcvs = clinvar["rcv"]
+        if not isinstance(rcvs, list):
+            rcvs = [rcvs]
+        sigs, omims = [], []
+        best = None
+        for r in rcvs:
+            sig = str(r.get("clinical_significance", "")).strip()
+            if sig and sig not in sigs:
+                sigs.append(sig)
+            cond = r.get("conditions")
+            for c in (cond if isinstance(cond, list) else [cond]):
+                ident = (c or {}).get("identifiers") or {}
+                o = ident.get("omim")
+                for x in (o if isinstance(o, list) else [o]):
+                    if x and str(x) not in omims:
+                        omims.append(str(x))
+            # El RCV mas informativo: patogenico > VUS > benigno > sin aporte
+            rank = 3 if "athogenic" in sig else 2 if "ncertain" in sig else 1 if "enign" in sig else 0
+            if best is None or rank > best[0]:
+                best = (rank, r)
+        if sigs:
+            meta["CLINVAR_SIG"] = "|".join(s.replace(" ", "_").replace(",", "") for s in sigs)
+        if best and best[1].get("review_status"):
+            meta["CLINVAR_REVIEW_STATUS"] = str(best[1]["review_status"]).replace(" ", "_").replace(",", "")
+        if omims:
+            meta["OMIM_PHENOTYPE"] = "|".join(omims)
 
     return meta
 
@@ -173,7 +215,8 @@ def write_chunk(chunk, meta_maps, outfile):
                 f"CONSEQUENCE={rec['consequence']}",
                 f"PUTATIVE_IMPACT={rec['impact']}",
             ]
-            additions.extend(f"{k}={v}" for k, v in parse_metadata(meta_map.get(vid, {})).items())
+            additions.extend(k if v is None else f"{k}={v}"
+                             for k, v in parse_metadata(meta_map.get(vid, {})).items())
 
             row = [rec["chrom"], rec["pos"], rec["id"], rec["ref"], rec["alt"],
                    rec["qual"], rec["filt"], rec["info_raw"] + ";" + ";".join(additions)]

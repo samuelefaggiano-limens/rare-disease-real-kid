@@ -47,7 +47,7 @@ curl -O ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/common
 No build system or CI. Scripts take `--input`/`--output` and default to the right paths under `data/`.
 
 ```bash
-# Step 2 — QC + rare-variant prefilter (5M -> ~380k). The long one.
+# Step 2 — QC + rare-variant prefilter (5M -> 591k). ~1.5 min on Apple Silicon.
 python notebooks/notebook/run_step2_prefilter.py
 
 # Step 3A — SnpEff (below) then MyVariant.info annotation
@@ -59,12 +59,29 @@ python notebooks/notebook/step3b_alphagenome.py
 # Notebooks assume notebooks/ as cwd (paths are ../data/...)
 cd notebooks && jupyter lab
 
-python -m pytest tests/                      # pytest not in requirements yet; tests/ is empty
+# Step 4 — HPO gene prioritisation (reads the .docx for HPO terms, or --hpo ...)
+python notebooks/notebook/track1_step4_prioritize.py
+
+# Step 5 — epcr + submission CSV (output/track1/<username>_<model>.csv)
+python notebooks/notebook/track1_step5_submission.py --username <hf-user> --model hpo-epcr-v1
+
+python -m pytest tests/                      # src/hpo.py and src/epcr.py unit tests
 ```
 
 ### snpEff (Step 3A, run before the annotate script)
+
+`snpEff download GRCh38.99` **no longer works** with the versioned jar (SnpEff 4.5covid19): SourceForge has no `v4_5` databases and the Azure repository used by SnpEff 5.x does not resolve any more. Build the database once from Ensembl release 99 instead (~1 GB download, ~10 GB heap, run from `snpEff/` so `data.dir = ./data/` in `snpEff.config` resolves):
+
 ```bash
-java -jar snpEff/snpEff.jar download GRCh38.99          # ~5 GB, once
+export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+cd snpEff && mkdir -p data/GRCh38.99 data/genomes
+E=https://ftp.ensembl.org/pub/release-99
+curl -L -C - -o data/GRCh38.99/genes.gtf.gz  $E/gtf/homo_sapiens/Homo_sapiens.GRCh38.99.gtf.gz
+curl -L -C - -o data/GRCh38.99/cds.fa.gz     $E/fasta/homo_sapiens/cds/Homo_sapiens.GRCh38.cds.all.fa.gz
+curl -L -C - -o data/GRCh38.99/protein.fa.gz $E/fasta/homo_sapiens/pep/Homo_sapiens.GRCh38.pep.all.fa.gz
+curl -L -C - -o data/genomes/GRCh38.99.fa.gz $E/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+java -Xmx10g -jar snpEff.jar build -gtf22 -v GRCh38.99
+cd ..
 java -Xmx8g -jar snpEff/snpEff.jar -canon GRCh38.99 \
     data/track1_step2_rare_variants.vcf.gz > snpeff_annotated.vcf
 ```
@@ -106,9 +123,7 @@ Within the QC loop, filters run cheapest-first — `variant.format()` allocates 
 The Step 3A and 3B scripts **abort** when the API exhausts retries or `AtlasClient` will not initialise. They used to write an unannotated VCF that looked complete. A half-annotated file is worse than an error when the next step ranks variants on those exact fields.
 
 ### Current state
-Step 3 has not successfully completed. `snpeff_annotated.vcf` and both `track1_step3*.vcf.gz` in the repo root are empty placeholders from failed runs, and the snpEff GRCh38 database has not been downloaded.
-
-`docs/01-procedure.md` records 591,339 surviving rare variants from Step 2 while `docs/02-findings.md` records 380,292. Re-run Step 2 and reconcile before relying on either figure.
+Step 2 re-run on macOS (2026-09-17): **591,339** rare variants, reproducing the notebook; the 380,292 figure that used to be in `docs/02-findings.md` was wrong and has been corrected. Step 3 completed on macOS the same day from a locally built snpEff `GRCh38.99`: 1,526 HIGH/MODERATE variants in `track1_step3a_snpeff_filter.vcf.gz` (MyVariant now queried with `assembly=hg38` — earlier outputs were hg19 lookups and are invalid) and `track1_step3b_regulatory_annotated.vcf.gz` (AVI for the 1,220 SNVs; Atlas does not score indels). 1,212 of the 1,526 have gnomAD AF > 1 % — dbSNP Common misses most common coding variants, so Step 5 filters on gnomAD AF. Steps 4 and 5 are implemented (`track1_step4_prioritize.py`, `track1_step5_submission.py`, `src/hpo.py`, `src/epcr.py`, tests in `tests/`) but **have not been run on the real data yet** by team decision.
 
 ## Working conventions
 
