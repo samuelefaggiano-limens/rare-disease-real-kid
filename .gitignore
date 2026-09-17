@@ -192,3 +192,16 @@ download.log
 
 # AI Agent's Files
 AGENTS.md
+
+# Herramientas descargadas por maquina (especificas de plataforma o enormes).
+# El JDK vendorizado es de Windows y no sirve en macOS/Linux; snpEff se
+# descomprime desde snpEff.zip, que si esta versionado.
+java17/
+openjdk17.zip
+snpEff/
+
+# Artefactos del pipeline: contienen variantes del paciente. No commitear nunca.
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.vcf.gz.csi
