@@ -28,6 +28,9 @@ MVA is not caused by a single gene — several different genes, when broken, can
 | **CEP57** | MVA syndrome 2 | Homozygous (same broken copy from both parents; more common when parents are related) | Intrauterine growth restriction, severe short stature, unusual facial features, skeletal abnormalities, congenital heart defects, delayed development | [Novel CEP57 mutation in MVA syndrome 2](https://pubmed.ncbi.nlm.nih.gov/41700350/) |
 | **TRIP13** | MVA syndrome 3 | Null (loss-of-function) variant | Strong link to **multiple tumors over a lifetime** (e.g., Wilms' tumor as a young child, followed years later by a tumor behind the eye) | [Wilms' tumor and orbital rhabdomyosarcoma in MVA syndrome 3](https://pubmed.ncbi.nlm.nih.gov/42595739/) |
 | **MAD2L1BP** (makes the protein p31comet) | Related aneuploidy/tumor-predisposition condition | Homozygous nonsense variant (biallelic) | Small head size (microcephaly), severe epilepsy, ovarian/testicular tumors in childhood; patient cells showed severe MVA and slowed cell growth in the lab | [Biallelic MAD2L1BP mutation and juvenile granulosa cell tumors](https://pubmed.ncbi.nlm.nih.gov/37796616/) |
+| **CEP192** | MVA syndrome with tetraploidy | Biallelic (recessive) | Microcephaly, short stature, limb-extremity dysplasia, tetraploidy, and predisposition to male infertility. | [Mosaic variegated aneuploidy syndrome with tetraploid... mutant CEP192](https://pubmed.ncbi.nlm.nih.gov/37981762/) |
+| **SMC5** | Atelis Syndrome / MVA with near-tetraploidy | Compound heterozygous / recessive | Near-tetraploidy, mild developmental delay, hypospadias (milder presentation) or severe growth failure and multi-system abnormalities. | [Recessive SMC5 Variants in a Family with Near-Tetraploidy/Mosaic Variegated Aneuploidy](https://pubmed.ncbi.nlm.nih.gov/41374403/) |
+| **BUB1** | Primary Microcephaly 30 (MCPH30) / MVA syndrome | Compound heterozygous | Microcephaly, severe neurodevelopmental disorders, chromosome segregation defects. | [Generation and characterization of... cell lines from a young female with microcephaly carrying a compound heterozygous mutation in BUB1 gene](https://pubmed.ncbi.nlm.nih.gov/39490209/) |
 
 **How to use this table for Track 1:** Match the child's clinical features (growth, brain findings, tumor history, seizures, etc.) against the "Typical features" column. Whichever gene's known phenotype overlaps best with the child's actual symptoms is the strongest candidate to search first in his genome data — this is the essence of *phenotype-guided* prioritization rather than blindly ranking all variants genome-wide.
 
@@ -69,6 +72,9 @@ Source: [A prevalent MOCS2 variant in the Roma population and mild molybdenum co
 8. ACMG/AMP sequence variant interpretation standards: https://doi.org/10.1038/gim.2015.30
 9. The Human Gene Mutation Database (HGMD): https://pubmed.ncbi.nlm.nih.gov/28349240/
 10. Clinical interpretation of non-coding genome variants: https://pmc.ncbi.nlm.nih.gov/articles/PMC12192682/
+11. CEP192 and MVA with tetraploidy: https://pubmed.ncbi.nlm.nih.gov/37981762/
+12. SMC5 variants and Atelis / MVA: https://pubmed.ncbi.nlm.nih.gov/41374403/
+13. BUB1 and MCPH30 / MVA: https://pubmed.ncbi.nlm.nih.gov/39490209/
 ---
 
 

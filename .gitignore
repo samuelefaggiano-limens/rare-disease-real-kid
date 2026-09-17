@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Credentials
+.env
+
 # C extensions
 *.so
 
@@ -190,7 +193,7 @@ __marimo__/
 data/
 download.log
 
-# AI Agent's Files
+# Others
 AGENTS.md
 
 # Herramientas descargadas por maquina (especificas de plataforma o enormes).
@@ -205,3 +208,7 @@ snpEff/
 *.vcf.gz
 *.vcf.gz.tbi
 *.vcf.gz.csi
+/notebooks/snpEff_genes.txt
+/snpEff_genes.txt
+/notebooks/snpEff_summary.html
+/snpEff_summary.html
