@@ -41,6 +41,12 @@ This document tracks all new interesting findings and insights (Track 1, Track 2
     *   a **stop-gain** (HIGH), gnomAD genomes AF ~3e-5, CADD 36, AVI_PHRED 33.8 (top modality PROTEIN_TERMINATION), ClinVar **Pathogenic/Likely pathogenic** (single submitter), OMIM 257300 (MVA syndrome 1), allelic balance 0.54;
     *   a **missense** (MODERATE) absent from gnomAD, CADD 24.5, REVEL 0.47, AVI_PHRED 25.6 (top modality ALPHAMISSENSE), no ClinVar record, allelic balance 0.46.
     *   Two heterozygous variants in an autosomal-recessive MVA gene is the compound-heterozygous pattern described for MVA1 in `00-references.md`; phase cannot be determined from a single-sample VCF. No HIGH/MODERATE rare variants in *CEP57*, *TRIP13* or *MAD2L1BP*. Exact coordinates and HGVS live only in the gitignored `track1_step3b_regulatory_annotated.vcf.gz` (repo rule: no extracted patient identifiers in git).
-*   **Figure for non-specialists** — where the two *BUB1B* changes sit in the gene, what each does to the protein (exon 17: a TTA→TGA codon change creates a premature STOP at residue 751 of 1064; exon 23: AAT→AAG replaces asparagine 1016 with lysine), and what heterozygosity means, including the two phase scenarios (changes on different copies vs. the same copy). Interactive HTML: [`figures/bub1b_variantes_explicado.html`](figures/bub1b_variantes_explicado.html).
+*   **Figure for non-specialists / Figura para no especialistas** — bilingual. The interactive HTML has an Español/English switch at the top right: [`figures/bub1b_variantes_explicado.html`](figures/bub1b_variantes_explicado.html) (regenerate with `python docs/figures/build_bub1b_figure.py`). Static versions below.
 
-    ![The two BUB1B variants, explained](figures/bub1b_variantes_explicado.png)
+    **🇬🇧 English.** Where the two *BUB1B* changes sit in the gene, what each does to the protein (exon 17: a TTA→TGA codon change creates a premature STOP at residue 751 of 1064; exon 23: AAT→AAG replaces asparagine 1016 with lysine), and what heterozygosity means, including the two phase scenarios (changes on different copies vs. the same copy).
+
+    ![The two BUB1B variants, explained](figures/bub1b_variants_explained_en.png)
+
+    **🇪🇸 Español.** Dónde están los dos cambios de *BUB1B* en el gen, qué hace cada uno a la proteína (exón 17: el trío TTA pasa a TGA y crea una señal de STOP prematura en el ladrillo 751 de 1064; exón 23: AAT pasa a AAG y reemplaza la asparagina 1016 por lisina), y qué significa la heterocigosis, con los dos escenarios de fase posibles (cambios en copias distintas o en la misma copia).
+
+    ![Las dos variantes en BUB1B, explicadas](figures/bub1b_variantes_explicado.png)
