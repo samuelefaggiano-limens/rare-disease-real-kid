@@ -20,4 +20,4 @@ This document tracks all new interesting findings and insights (Track 1, Track 2
 *   Applying intrinsic QC filters (GQ>=20, DP>=10, and 'PASS') coupled with a strict Allelic Balance filter (0.30 - 0.70 for heterozygous variants) successfully removes nearly half of the raw variants.
 *   **Insight:** The raw VCF contained 5,012,204 variants. After basic intrinsic QC, 2,645,065 variants survived (a ~47.2% reduction in noise). 
 *   **Filter 2 (Common Variant Subtraction):** By using `cyvcf2` to do an allele-aware subtraction against dbSNP Common (MAF >= 1%), we dropped an additional 2,264,773 common variants.
-*   **Final Output:** We are left with exactly **380,292 ultra-rare and high-quality variants** (saved to `data/track1_step2_rare_variants.vcf.gz`), meaning we have successfully stripped away 92.4% of the noise before moving into the computationally expensive annotation phase. 
+*   **Final Output:** We are left with exactly **380,292 ultra-rare and high-quality variants** (saved to `data/track1_step2_rare_variants.vcf.gz`), meaning we have successfully stripped away 92.4% of the noise before moving into the computationally expensive annotation phase.

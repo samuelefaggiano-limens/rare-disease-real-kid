@@ -1,4 +1,5 @@
 pandas==3.0.5
 cyvcf2==0.34.0
 python-docx==1.2.0
-matplotlib==3.11.1
+matplotlib==3.11.1myvariant==1.0.0
+requests==2.34.2

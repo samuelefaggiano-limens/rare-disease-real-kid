@@ -64,94 +64,124 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38. | Processed 5M variants -> 2.64M survived intrinsic QC. Subtraction dropped 4.4M common variants. Final result: 591,339 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz`. |
 
+# Revised Procedure: Steps 3–5 (Track 1)
+
+Step 3 is implemented as **one single notebook** (`track1_step3_exp01-annotation_and_filtering.ipynb`). It reads `track1_step2_rare_variants.vcf.gz` once, runs a cascade of annotation and filtering stages against it in memory, and writes **one output file**: `track1_step3_annotation_and_filtering.vcf.gz`. Nothing is saved to disk between the sub-stages below — they are steps inside the same notebook, not separate pipeline runs.
+
+---
+
 ### Step 3: VCF Annotation & Filtering
-*   **Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz` containing ~591,339 variants).
-*   **Action:** We will run two independent annotation pipelines in parallel to evaluate the strengths of traditional functional annotation versus deep-learning regulatory scoring, and then compare their top candidates.
 
-#### Step 3A: Traditional Functional Annotation (SnpEff & MyVariant.info)
-*   **Input:** Pre-filtered VCF.
-*   **Action:** We must annotate each surviving rare variant to understand its biological context.
-*   **Data Added During Annotation:**
-    To successfully evaluate each variant, we integrate existing VCF metrics with new biological context annotations:
-    *   **Original VCF Columns Maintained:** 
-        *   `CHROM`, `POS`, `REF`, `ALT`: The fundamental coordinates and alleles.
-        *   `FORMAT_GQ`, `FORMAT_DP`, `FILTER`: Our quality bouncers for filtering.
-        *   `FORMAT_GT`, `FORMAT_AD_REF`, `FORMAT_AD_ALT`: Genotype and allele depths, crucial for proving recessive vs. dominant inheritance and confirming variant legitimacy.
-    *   **New Annotations Added:**
-        *   `GENE_SYMBOL`: The affected gene (e.g., *BUB1B*). Found by mapping the variant coordinates to a reference genome.
-        *   `CONSEQUENCE`: The physical alteration to the protein (e.g., *Missense*, *Frameshift*). Calculated dynamically based on how the `REF` changes to `ALT` inside the transcript.
-        *   `PUTATIVE_IMPACT`: Categorizes consequences into `HIGH`, `MODERATE`, `LOW`, or `MODIFIER`. Sourced from functional annotator calculations.
-        *   `GNOMAD_AF`: The overall allele frequency in the human population. 
-        *   `CADD_PHRED` & `REVEL`: Numeric pathogenicity scores evaluating how destructive the mutation is. 
-        *   `CLINVAR_SIG` & `CLINVAR_REVIEW_STATUS`: Known clinical significance and the evidence star-rating. 
-        *   `OMIM_PHENOTYPE`: Inherited syndromes linked to the gene. 
-        *   `LOFTOOL_SCORE`: Gene's intolerance to loss-of-function. 
-*   **Tools:**
-    *   **Functional Annotation:** We will use a tool like **SnpEff** locally. These "live" annotators use a reference transcriptome to dynamically calculate the `GENE_SYMBOL`, `CONSEQUENCE`, and `PUTATIVE_IMPACT` on the fly from the `REF`/`ALT` alleles, ensuring 100% coverage even for entirely novel mutations. SnpEff databases for GRCh38 are roughly ~5GB.
-    *   **Filter:** Keep only variants where `PUTATIVE_IMPACT` is `HIGH` or `MODERATE` (drastically reducing the ~591k variants to roughly ~10k-20k).
-    *   **Local Transcriptome Annotation (SnpEff):** Run SnpEff locally using the GRCh38 database with canonical transcript enforcement `(-canon)` to avoid transcript duplication and retain the single most severe biological consequence per variant. Dynamically derive: `GENE_SYMBOL`, `CONSEQUENCE`, and `PUTATIVE_IMPACT`.
-    *    **High-Throughput Metadata Cross-Referencing:** Query the MyVariant.info REST API strictly via its batch endpoint `(POST /v1/variant`, batch size = 1,000) using a Python pipeline with retry and backoff logic to prevent rate-limiting. To append the remaining metadata (`GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `OMIM_PHENOTYPE`, etc.), we will use query an external REST API (like **MyVariant.info**) to fetch and append these fields programmatically via Python. Using APIs is preferred. SnpEff will provide `GENE_SYMBOL`, `CONSEQUENCE` and `PUTATIVE_IMPACT`. `MyVariant.info` will provide the remaining fields. 
-*   **Output:**
-    The final output will be a VCF file containing exactly one row per variant (prioritizing the canonical transcript's most severe consequence to avoid duplicates). The final columns will be:
-    *   **From Input VCF:** `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, `FORMAT_DP`, `FORMAT_GQ`, `FORMAT_GT`, `FORMAT_AD_REF`, `FORMAT_AD_ALT`
-    *   **Added at this Step:** `GENE_SYMBOL`, `CONSEQUENCE`, `PUTATIVE_IMPACT`, `GNOMAD_AF`, `CADD_PHRED`, `REVEL`, `CLINVAR_SIG`, `CLINVAR_REVIEW_STATUS`, `OMIM_PHENOTYPE`, `LOFTOOL_SCORE`
-    *   **Format:**  The output of this stage must be saved as a standard VCF (e.g., track1_step3a_snpeff_filter.vcf.gz) with all columns listed above.
+*   **Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz`, ~591,339 variants).
+*   **Action:** Run a sequential cascade — a known-pathogenic lookup, local functional annotation, and population/clinical metadata enrichment — where each stage narrows or enriches the variant set for the next.
+*   **Output of the whole step:** `track1_step3_annotation_and_filtering.vcf.gz`, ready for Step 4.
 
-#### Step 3B: Deep Learning Regulatory Scoring (AlphaGenome Atlas)
-*   **Input:** Coding variants from Step 3A (`track1_step3a_snpeff_filter.vcf.gz`).
-*   **Action:** Evaluate the rare variants across the coding regions for structural and regulatory impact using Google DeepMind's AlphaGenome Atlas API.
-*   **Optimization & Pre-filtering:** Use only the coding variants found in Step 3A to bypass API latency and get rid of all non-coding DNA.
-*   **Data Added During Annotation:**
-    *   `AVI_SCORE` (AlphaGenome Variant Impact): A unified numeric score predicting the pathogenicity and regulatory disruption of the variant.
-    *   `TARGET_GENE`: The specific gene(s) whose expression or splicing is predicted to be altered by the variant (crucial for Step 4 Phenotype Matching).
-    *   `REGULATORY_FEATURE`: The specific mechanism or non-coding element disrupted (e.g., Splicing, Enhancer, Promoter) to inform Track 2 mechanism characterization.
-*   **Tools:**
-    *   **AlphaGenome Atlas API** (`alphagenome.atlas.atlas.AtlasClient`).
-    *   We will use `AtlasClient.query_variants(variants, requested_scorers=['avi', ...])` to retrieve the scores from the returned `AnnData` matrix and merge them back into our pipeline.
-    *   **Filter:** Do not filter anything at this stage, this is purely an enrichment step with AlphaGenome Atlas' features.
-*   **Output:** 
-    An annotated dataset (VCF file) containing our rare variants appended with their respective AlphaGenome scores, target genes, and regulatory metadata.
-    The output of this stage must be saved as a standard VCF `(track1_step3b_regulatory_annotated.vcf.gz)` containing all enriched variants without filtering.
+#### Stage 3.1: Known-Pathogenic Fast Pass
 
-* **Experiments:**
+*   **What this does:** Before doing any of our own analysis, we check whether any of our 591,339 candidate variants have already been studied and classified by other clinical laboratories, using the public ClinVar database. Think of it as checking "has anyone already solved this specific line of the genome before?" before we spend hours building our own scoring system.
+*   **Input:** `track1_step2_rare_variants.vcf.gz`.
+*   **Implementation:**
+    *   Download the ClinVar GRCh38 VCF (~100 MB) and its index.
+    *   Normalise both our variant file and the ClinVar file with `bcftools norm -f GRCh38.fa -m -any -c w` so that the same mutation is always written the same way in both files (see the note on normalisation below — this is easy to skip and easy to regret skipping).
+    *   Intersect the two files (`bcftools isec -n=2 -w1`) and keep only matches flagged "Pathogenic" or "Likely pathogenic."
+    *   Record the ClinVar confidence level (the "star rating") for each hit.
+*   **Why it matters:** this costs a few minutes of compute and no API calls. Since a team of medical geneticists already diagnosed this child, there is a real chance the causal variant is already sitting in a public clinical database. If we get a hit in a known MVA gene, we may have our answer immediately, and everything after becomes confirmation rather than discovery. If we get nothing, that is useful information too — it tells us the causal variant is probably novel and never recorded anywhere, so we must not treat "absent from ClinVar" as evidence that a variant is harmless later in the pipeline.
+
+**A note on "normalisation" (relevant to every stage in this step):** the same genetic mutation can be written in more than one equivalent way in a VCF file — for example, a small deletion can be described starting from slightly different positions depending on the software that produced the file. If we don't force every file we use (our data, ClinVar, SnpEff's output) to write mutations the same standard way, two files can describe the identical mutation with different text, and our matching logic will conclude they are different variants — a silent, invisible error. Running `bcftools norm` once, up front, prevents this for every downstream comparison in Step 3.
+
+#### Stage 3.2: Local Functional Annotation (SnpEff)
+
+*   **What this does:** For every surviving variant, we determine which gene it falls inside, what it does to that gene's protein (does it change one amino acid? does it break the protein entirely?), and how severe that change is predicted to be. This is like translating a raw DNA typo into "this breaks gene X in a serious way" versus "this makes a harmless spelling change."
+*   **Input:** `track1_step2_rare_variants.vcf.gz` (normalised).
+*   **New annotations added:**
+    *   `GENE_SYMBOL` — the gene the variant falls in (e.g. *BUB1B*).
+    *   `CONSEQUENCE` — the type of protein-level change (e.g. missense, frameshift, stop-gain).
+    *   `PUTATIVE_IMPACT` — a severity bucket: `HIGH`, `MODERATE`, `LOW`, or `MODIFIER`.
+    *   `TRANSCRIPT_ID`, `HGVS_C`, `HGVS_P` — the exact transcript used for the call, and standard coding/protein notation (needed later to cross-check against ClinVar and to write a readable `notes` field in the final submission).
+    *   `EXON_RANK` / `EXON_TOTAL` — which exon (out of how many) the variant falls in. This matters because a "stop" mutation near the beginning of a gene usually destroys the protein completely, while the same kind of mutation in the very last exon often does much less damage. This distinction becomes important for the drug-mechanism reasoning in Track 2.
+*   **Tool:** SnpEff (pin the exact version and GRCh38 database build used, and record both in the methods report).
+*   **Transcript choice — using MANE Select, not the longest transcript:** genes can have multiple "versions" (transcripts) of similar but not identical sequence. We must pick one to base our gene/consequence calls on. We use the **MANE Select** transcript — the transcript that NCBI and EBI have jointly designated as the clinical reference for each gene — rather than simply the longest one. This matters because clinical databases like ClinVar report variants against the MANE transcript; if we use a different one, our variant descriptions won't match theirs and cross-referencing will silently fail.
+*   **Filtering — what we keep and why:**
+    *   Keep only variants where `PUTATIVE_IMPACT` is `HIGH` or `MODERATE`. In plain terms: we discard variants predicted to have little or no effect on the protein (`LOW`/`MODIFIER`), and keep only those predicted to meaningfully change or break the protein. This is expected to reduce ~591,000 variants down to roughly 10,000–20,000.
+    *   **Exception — always keep `splice_region_variant` regardless of its severity label.** SnpEff labels these as `LOW` impact by default, which would normally exclude them from the filter above. We override that, because these variants sit in the small stretch of DNA right next to where a gene's coding instructions are "spliced" together, and mutations there are a well-documented cause of serious inherited disease even though the tool underrates their severity. Skipping this exception is one of the easiest ways to accidentally throw away the correct answer.
+*   **Output of this stage:** the surviving ~10,000–20,000 variants, now carrying the fields above, held in memory for the next stage.
+
+#### Stage 3.3: Population Frequency & Clinical Metadata (MyVariant.info)
+
+*   **What this does:** For each of the ~10,000–20,000 surviving variants, we ask a public annotation database three questions: "How common is this variant in healthy people?", "Has a computer model predicted how damaging it is?", and "Has any clinical lab already classified it?" A variant that is common in healthy adults essentially cannot be the cause of an ultra-rare disease, so this stage is largely about elimination by population frequency.
+*   **Input:** the surviving variants from Stage 3.2.
+*   **New annotations added:**
+    *   `GNOMAD_AF` — how frequently this exact variant appears in a reference database of roughly 800,000 people (gnomAD). The lower, the rarer, and the more plausible as a cause of an ultra-rare disease.
+    *   `GNOMAD_AF_POPMAX` — the highest frequency seen in any single population group. A variant that looks rare overall but is common in one specific ancestry group is more likely a normal population-specific variant than a disease cause.
+    *   `GNOMAD_NHOMALT` — the number of healthy people in that same reference database who carry **two copies** of this variant (one from each parent). This is the single most decisive number in this stage for a recessive disease like MVA: if healthy adults exist who have two copies of this variant and are not sick, it cannot be the two-copy cause of this child's disease, no matter how "damaging" it looks by other measures.
+    *   `REVEL` and `ALPHAMISSENSE_SCORE` / `ALPHAMISSENSE_PRED` — two independent computer predictions of how damaging a single-amino-acid change (missense variant) is likely to be. These only apply to missense variants; they will be empty for variants that delete or frameshift the gene, because "how damaging is this amino-acid substitution" isn't a meaningful question for a broken gene.
+    *   `CLINVAR_SIG` and `CLINVAR_REVIEW_STATUS` — whether any clinical lab has already classified this exact variant (e.g. "Pathogenic," "Benign," "Uncertain"), and how much confidence to place in that classification (a rating from "one anonymous submission" up to "reviewed by an expert panel"). A single variant can have several conflicting classifications from different submitters, so we keep the highest-confidence one and note if there is disagreement.
+    *   `GENE_LOEUF` / `GENE_PLI` — a gene-level (not variant-level) measure of how strongly that gene resists loss-of-function mutations across the human population. A gene where such mutations are almost never seen in healthy people is a gene where a loss-of-function mutation is more likely to cause disease.
+*   **Practical details:**
+    *   Query the MyVariant.info API in batches of 1,000 variants, with automatic retry if a request fails.
+    *   Explicitly request the GRCh38 (`hg38`) version of the database — the service defaults to an older genome build (`hg19`) unless told otherwise, which would silently return the wrong information.
+    *   Some fields (ClinVar classifications, REVEL/AlphaMissense scores) can come back as a list with more than one entry, because they are reported per-transcript or per-submission. We reduce each list to a single representative value (the most severe score, or the highest-confidence classification).
+*   **Expected gaps in the data (plan for these now, don't be surprised later):**
+    *   REVEL and AlphaMissense will be empty for every frameshift, deletion, insertion and splice-region variant — this is expected, not a data quality problem.
+    *   Most variants will have no ClinVar entry at all. Absence of a ClinVar record means "nobody has studied this variant yet," not "this variant is harmless." These two must be scored differently later, in Step 5.
+*   **Output of this stage — and of Step 3 as a whole:** `track1_step3_annotation_and_filtering.vcf.gz`, the final annotated candidate set, written to disk for use in Step 4.
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step3_exp01-annotation_and_filtering.ipynb` | Run SnpEff local annotation (MANE Select), parse high/moderate impact + splice region variants, batch annotate with MyVariant.info and gnomAD LOEUF constraints. | Processed 380,292 variants, filtered out low-impact mutations. Surviving 1,653 variants annotated and exported to `track1_step3_annotation_and_filtering.vcf.gz`. |
+
+---
 
 ### Step 4: Gene Prioritization & Phenotype Matching
-*   **Action:** We now have a small list of rare, protein-altering mutations. We cross-reference the genes containing these mutations with the HPO terms generated in Step 1.
-*   **Matching:** We compare the patient's extracted HPO terms against established "Gene-to-Phenotype" databases (like OMIM or the HPO database itself). These databases contain lists of symptoms (HPO terms) that are scientifically proven to occur when specific genes are mutated. By calculating the overlap (or semantic similarity) between the child's symptoms and a gene's known disease profile, we can rank the candidate genes.
-    *   *Example of Cross-referencing:* 
-        1.  **Patient Data:** The clinical text (Step 1) gives us `HP:0000252` (Microcephaly) and `HP:0001250` (Seizures).
-        2.  **Variant Data:** Step 4 filtering leaves us with rare mutations in three candidate genes: *Gene A*, *Gene B*, and *BUB1B*.
-        3.  **Database Lookup:** We query the HPO database for these three genes.
-            *   *Gene A* is only known to cause `HP:0010442` (Polydactyly - extra fingers). *Match: 0% overlap*.
-            *   *Gene B* is known to cause `HP:0000365` (Deafness). *Match: 0% overlap*.
-            *   *BUB1B* is known to cause `HP:0000252` (Microcephaly), `HP:0001250` (Seizures), and `HP:0000518` (Cataracts). *Match: High overlap!*
-        4.  **Conclusion:** Because the known symptoms of a broken *BUB1B* gene perfectly align with our patient's symptoms, the mutation in *BUB1B* is prioritized as the most likely cause, effectively discarding the "noisy" mutations in *Gene A* and *Gene B*.
-*   **Targeted Search:** For this specific hackathon, we also explicitly check if the surviving variants land in known MVA genes (e.g., *BUB1B*, *CEP57*, *TRIP13*) or genes related to the **Spindle Assembly Checkpoint (SAC)** or centrosomes.
-*   **Tools:** Exomiser, Phenolyzer, or manual literature querying via PubMed.
-*   **Experiments:**
+
+*   **Input:**
+    *   The patient's extracted clinical HPO terms (from Step 1).
+    *   `track1_step3_annotation_and_filtering.vcf.gz`.
+*   **Action:** Compare the genes disrupted by our candidate variants against the child's actual documented symptoms, and boost variants in genes that are already known to cause this specific disease.
+*   **Implementation Details:**
+    *   **Gene mapping:** each variant is linked to a gene using SnpEff's `GENE_SYMBOL` from Stage 3.2.
+    *   **Matching symptoms to genes (semantic similarity):** matching the child's symptoms to a gene's known symptoms cannot rely on exact text matching, because doctors and databases describe the same underlying problem in different words (e.g. "seizures" versus the broader "abnormality of the nervous system"). We instead use the **Human Phenotype Ontology (HPO)**, a structured map of how medical terms relate to one another, and measure how *close* the child's symptoms are to each candidate gene's known symptom profile, using standard similarity algorithms (Resnik, Lin) via the `pyhpo` library. Each variant receives a `PHENOTYPE_SIMILARITY_SCORE` based on this closeness.
+        *   We also record a `PHENOTYPE_SCORE_IS_NULL` flag for genes that have **no** documented symptom profile at all in the database. This distinction matters: a gene with no documented symptoms is simply unstudied, which is different from a gene whose documented symptoms clearly don't match this child. Both would otherwise score as "0," which would unfairly bury variants in unstudied genes — and this disease is rare enough that an unstudied gene is a real possibility.
+    *   **Reference data:** we load the HPO project's `genes_to_phenotype.txt` file locally (rather than querying a live web API), and record exactly which release version of this file we used, so the analysis can be reproduced later.
+    *   **The MVA gene panel (targeted boost):** MVA is primarily caused by defects in a cellular quality-control system called the Spindle Assembly Checkpoint, plus related centrosome biology. We compile a list of relevant genes and give variants in those genes a boost — but not all genes on the list are equally certain, so we use two confidence tiers rather than one:
+        *   **Tier 1 — genes with confirmed causal roles in MVA specifically:** *BUB1B*, *CEP57*, *TRIP13*, *CENATAC*/*CCDC84*. These receive a strong boost.
+        *   **Tier 2 — genes involved in the same general biological system, but not established causes of MVA specifically:** *MAD2L1, CDC20, CENPE, SGO1, AURKB, PLK1, MAD1L1, BUB1, BUB3, TTK, ESPL1, PTTG1, NDC80, CENPF*. These receive a smaller boost. Splitting the list this way matters because some of these genes are already known to cause *other*, different diseases when disrupted — a large boost applied indiscriminately to all of them risks pushing an unrelated finding above the real answer.
+        *   This gene panel, with a short note on why each gene is included, is kept in its own file (`data/mva_panel.tsv`) rather than buried in code, so it is easy to review and update.
+    *   **Identifying compound-heterozygous candidates:** MVA is usually recessive, meaning it typically requires *both* copies of a gene to be broken — either the same broken copy inherited from both parents, or two different broken copies, one from each parent (a "compound heterozygous" case). We group our surviving variants by gene and flag any gene carrying two or more different candidate variants, since this is exactly the pattern the final submission format is designed to capture. Because we do not have the parents' DNA, we cannot directly prove that two such variants came from different parents — we can only note that a gene carries two plausible broken copies, and we state this limitation clearly rather than overstating our confidence.
+*   **Tools:** Python (`pyhpo`, `networkx`, `pandas`), the local `genes_to_phenotype.txt` dataset, `data/mva_panel.tsv`.
+*   **Output:** a master candidate table (CSV), enriched with `PHENOTYPE_SIMILARITY_SCORE`, `PHENOTYPE_SCORE_IS_NULL`, `MVA_PANEL_TIER`, and `COMPOUND_HET_CANDIDATE`, ready for final ranking in Step 5.
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+
+---
 
 ### Step 5: Ranking and Submission
-*   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`) between 0 and 1 to each candidate variant. 
-    *   *What is EPCR?* This is not a standard biological metric; it is a custom confidence score we must engineer for this hackathon. It represents our pipeline's belief that a specific variant is the true cause of the disease.
-    *   *How we calculate it:* We will build a scoring function (either a weighted heuristic formula or an ML model) that combines the variant's features into a single score. For example, a variant gets a higher `epcr` if it has:
-        1.  Near-zero population frequency (gnomAD).
-        2.  A high computational pathogenicity score (e.g., CADD, REVEL).
-        3.  A high semantic overlap with the patient's HPO terms (Phenotype matching).
-        4.  A zygosity that perfectly fits an autosomal recessive or dominant inheritance model.
-*   **Output:** Format the top candidates, ranked from highest `epcr` to lowest, into `output/track1/track1_submission_template.csv`.
-*   **Experiments:**
+
+*   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`), a number between 0 and 1, to each candidate variant, representing how confident our pipeline is that this specific variant is the true cause of the disease.
+*   **How we calculate it:** a transparent, hand-weighted scoring formula (not a trained machine-learning model — we only have one true answer in this entire project, and we don't know it, so there is no way to properly train or validate a model here; a manually weighted formula is also far easier to explain and double-check).
+    *   We score **two separate types of variant differently**, because the evidence available for each type is completely different:
+        *   **Loss-of-function variants** (frameshift, stop-gain, and similar): scored mainly on `PUTATIVE_IMPACT = HIGH`, whether the affected exon position means the broken protein is likely eliminated by the cell's own quality control (nonsense-mediated decay), and how strongly the gene resists this kind of damage in the general population (`GENE_LOEUF`). REVEL and AlphaMissense are not used here, because those scores don't apply to this type of variant.
+        *   **Missense variants** (single amino-acid changes): scored mainly on REVEL and AlphaMissense.
+    *   Both branches also factor in: extreme rarity in the general population and zero healthy people carrying two copies (`GNOMAD_AF`, `GNOMAD_NHOMALT`); a genotype pattern consistent with the expected inheritance pattern; a strong symptom match (`PHENOTYPE_SIMILARITY_SCORE`); membership in the Tier 1 MVA gene list; and any existing clinical classification, weighted by how confident that classification is.
+*   **Handling missing information correctly:** several fields will legitimately be blank for many variants, and the scoring formula must treat "blank" correctly rather than as "bad":
+    *   A missing REVEL/AlphaMissense score on a frameshift variant is expected — that variant is simply scored using the loss-of-function branch instead.
+    *   No ClinVar entry means "unstudied," not "harmless" — it should not lower a variant's score, since the true cause of this child's disease may well be a variant nobody has ever recorded before.
+    *   A missing phenotype-similarity score (flagged by `PHENOTYPE_SCORE_IS_NULL`) should fall back on the gene-constraint information instead of being treated as "no symptom match."
+*   **Designing the submission for how it will be scored:** the competition rewards a *confident, well-separated* ranking far more than a long list of guesses. As the challenge describes it, submitting one very high-confidence correct guess alongside a handful of clearly low-confidence wrong guesses scores near-perfectly, while submitting many guesses that are all rated similarly highly scores poorly — even if the correct answer is technically included. In practical terms: submit a short list (roughly 5–10 rows, not 50), with a clear score gap between our top pick(s) and everything else, rather than a smooth spread of similar-looking scores.
+*   **Building each row of the submission file:**
+    *   A variant found as two identical copies (homozygous) → goes in the `_1` columns alone, `_2` left blank.
+    *   A compound-heterozygous pair identified in Step 4 → both variants go on the **same row**, one in the `_1` columns and one in the `_2` columns, sharing a single `epcr` score. A proposed pair must never be split across two separate rows — the scoring system treats each row as one complete hypothesis, and splitting a pair turns one potentially fully-correct guess into two only-half-credit guesses.
+    *   A single, extremely severe variant proposed as a dominant/spontaneous cause → `_1` columns alone.
+    *   The `notes` field for each row should briefly state the gene, the exact mutation, what it does to the protein, and the one-line reason we believe it's relevant.
+*   **Using our six submission attempts wisely:**
+    *   Submit the Step 3.1 ClinVar fast-pass result first, early on, as a low-cost baseline.
+    *   Use the next few submissions for the full pipeline's output as it is refined, ideally changing one meaningful thing at a time so we can tell what changed the leaderboard score.
+    *   Keep one or two submissions in reserve for later refinements once the full pipeline's early results are in.
+*   **Output:** the ranked candidate list written to `output/track1/track1_submission_template.csv`, named `<username>_<model-name>.csv`.
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
 
 ---
 
