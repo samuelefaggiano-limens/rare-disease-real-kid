@@ -1,17 +1,18 @@
-"""Genera docs/figures/bub1b_variantes_explicado.html (figura ES/EN del Paso 3).
+"""Generates docs/figures/bub1b_variants_explained.html (Step 3 figure, EN/ES).
 
-La figura es HTML + SVG estatico. El selector de idioma (arriba a la derecha) es
-puro CSS: dos <input type=radio> ocultos y una regla que esconde los textos
-con clase .es o .en segun cual este marcado. No hay JavaScript.
+The figure is static HTML + SVG. The language switch (top right) is pure CSS:
+two hidden <input type=radio> and one rule that hides the texts with class
+.es or .en depending on which one is checked. There is no JavaScript.
+English is the default.
 
-Uso:
-    python docs/figures/build_bub1b_figure.py                # HTML con selector ES/EN
-    python docs/figures/build_bub1b_figure.py --static es    # solo espanol (para exportar PNG)
-    python docs/figures/build_bub1b_figure.py --static en    # solo ingles
+Usage:
+    python docs/figures/build_bub1b_figure.py                # HTML with the EN/ES switch
+    python docs/figures/build_bub1b_figure.py --static en    # English only (for PNG export)
+    python docs/figures/build_bub1b_figure.py --static es    # Spanish only
 
-Los datos (exon, trio de letras, posicion en la proteina, lecturas) vienen de
-track1_step3b_regulatory_annotated.vcf.gz; las letras vecinas, del genoma de
-referencia GRCh38 (Ensembl). Ver docs/02-findings.md.
+The data (exon, letter triplet, protein position, reads) come from
+track1_step3b_regulatory_annotated.vcf.gz; the neighbouring letters from the
+GRCh38 reference genome (Ensembl). See docs/02-findings.md.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-# ---------------------------------------------------------------- textos
+# ---------------------------------------------------------------- strings
 T = {
     "page_title": ("Las dos variantes en BUB1B, explicadas", "The two BUB1B variants, explained"),
     "eyebrow": ("Track 1 · Paso 3 · gen BUB1B", "Track 1 · Step 3 · BUB1B gene"),
@@ -93,7 +94,7 @@ MODE = "toggle"  # or "es" / "en"
 
 
 def t(key: str, attrs: str = "", inner: bool = False) -> str:
-    """Un <text> SVG por idioma (o solo uno en modo estatico)."""
+    """One SVG <text> per language (or a single one in static mode)."""
     es, en = T[key]
     if MODE == "es":
         return f'<text {attrs}>{html.escape(es)}</text>'
@@ -104,7 +105,7 @@ def t(key: str, attrs: str = "", inner: bool = False) -> str:
 
 
 def s(key: str) -> str:
-    """Texto plano (HTML) por idioma, en <span>."""
+    """Plain HTML text per language, wrapped in <span>."""
     es, en = T[key]
     if MODE == "es":
         return html.escape(es)
@@ -119,7 +120,7 @@ SERIF = "font-family=\"'Instrument Serif', serif\""
 
 
 def letters(xs, seq, focal_idx, box_x, y=336):
-    """Fila de letras: grises las vecinas, negras las del trio, blanca sobre caja la cambiada."""
+    """Letter row: neighbours grey, triplet black, changed letter white on a box."""
     out = []
     for i, (x, ch) in enumerate(zip(xs, seq)):
         if i == focal_idx:
@@ -134,10 +135,10 @@ def focal_idx_set(i):
 
 
 def zoom_panel(x0, n, seq_chars, focal_i, codon, key_prefix):
-    """Panel B: 440 de ancho. seq_chars son 15 tokens ('…' incluidos), 24px de paso.
+    """Panel B: 440 wide. seq_chars are 15 tokens ('…' included), 24px pitch.
 
-    focal_i es el indice de la letra cambiada; codon, los 3 indices del trio
-    (la letra cambiada puede ser la 1.a, 2.a o 3.a del trio).
+    focal_i is the index of the changed letter; codon, the 3 indices of the
+    triplet (the changed letter can be its 1st, 2nd or 3rd base).
     """
     xs = [x0 + 36 + 24 * i for i in range(len(seq_chars))]
     row = []
@@ -216,7 +217,7 @@ def exon_blocks():
 
 
 def rich_line(y, parts):
-    """Linea de la seccion C con partes en negrita: parts = [(key, bold), ...] en un solo <text> por idioma."""
+    """Section C line with bold parts: parts = [(key, bold), ...] in a single <text> per language."""
     def build(lang_i):
         spans = []
         for key, bold in parts:
@@ -232,13 +233,13 @@ def rich_line(y, parts):
 
 
 def build() -> str:
-    lang_attr = "en" if MODE == "en" else "es"
+    lang_attr = "es" if MODE == "es" else "en"
     switch = ""
     switch_css = ""
     if MODE == "toggle":
         switch = f"""
-    <input type="radio" name="lang" id="lang-es" checked>
-    <input type="radio" name="lang" id="lang-en">"""
+    <input type="radio" name="lang" id="lang-en" checked>
+    <input type="radio" name="lang" id="lang-es">"""
         switch_css = """
     input[name="lang"] { position: absolute; opacity: 0; pointer-events: none; }
     #lang-en:checked ~ .frame .es, #lang-es:checked ~ .frame .en { display: none; }
@@ -251,15 +252,15 @@ def build() -> str:
     #lang-en:checked ~ .frame .lang-switch label[for="lang-en"] { background: var(--color-ink); color: #ffffff; }
     .frame { position: relative; }"""
         switch_html = """
-    <div class="lang-switch" aria-label="Idioma / Language">
-      <label for="lang-es">Español</label><label for="lang-en">English</label>
+    <div class="lang-switch" aria-label="Language / Idioma">
+      <label for="lang-en">English</label><label for="lang-es">Español</label>
     </div>"""
     else:
         switch_html = ""
 
-    # Letras vecinas del genoma de referencia GRCh38 (Ensembl), 6 a cada lado.
-    # Cambio 1: ...CAGAGT[T]AAGTGC...  trio TTA (indices 6-8), letra cambiada = 2.a del trio
-    # Cambio 2: ...TCTGAA[T]GCCAAT...  trio AAT (indices 5-7), letra cambiada = 3.a del trio
+    # Neighbouring letters from the GRCh38 reference genome (Ensembl), 6 on each side.
+    # Change 1: ...CAGAGT[T]AAGTGC...  triplet TTA (indices 6-8), changed letter = 2nd of the triplet
+    # Change 2: ...TCTGAA[T]GCCAAT...  triplet AAT (indices 5-7), changed letter = 3rd of the triplet
     p1_seq = ["…", "C", "A", "G", "A", "G", "T", "T", "A", "A", "G", "T", "G", "C", "…"]
     p2_seq = ["…", "T", "C", "T", "G", "A", "A", "T", "G", "C", "C", "A", "A", "T", "…"]
 
@@ -274,7 +275,7 @@ def build() -> str:
       </defs>
       <rect width="100%" height="100%" fill="#f5f5f5"/>
 
-      <!-- A. Donde esta -->
+      <!-- A. Where the gene is -->
       {t("secA", f'x="40" y="28" fill="#4f5d75" font-size="8" {MONO} letter-spacing="0.18em"')}
       {t("chrom", f'x="40" y="66" fill="#2d3142" font-size="12" font-weight="600" {SANS}')}
       {t("chrom_sub", f'x="40" y="80" fill="#4f5d75" font-size="9" {MONO}')}
@@ -321,7 +322,7 @@ def build() -> str:
       {zoom_panel(520, 2, p2_seq, 7, (5, 6, 7), "p2")}
       {codon_rows(520, "A A T", "A A G", "p2")}
 
-      <!-- C. Heterocigosis -->
+      <!-- C. Heterozygosity -->
       <line x1="40" y1="472" x2="960" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
       {t("secC", f'x="40" y="492" fill="#4f5d75" font-size="8" {MONO} letter-spacing="0.18em"')}
       {t("c_title", f'x="40" y="520" fill="#2d3142" font-size="12" font-weight="600" {SANS}')}
@@ -330,7 +331,7 @@ def build() -> str:
       {scenario(40, "scA", [(446, 2)], False, "scA_t", "scA_1", "scA_2", 390, None)}
       {scenario(520, "scB", [], True, "scB_t", "scB_1", "scB_2", 870, 926)}
 
-      <!-- Leyenda -->
+      <!-- Legend -->
       <line x1="40" y1="764" x2="960" y2="764" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
       {t("legend", f'x="40" y="780" fill="#4f5d75" font-size="8" {MONO} letter-spacing="0.18em"')}
       <rect x="40" y="792" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
@@ -384,8 +385,8 @@ def build() -> str:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--static", choices=["es", "en"], help="un solo idioma, sin selector")
-    ap.add_argument("-o", "--output", default=str(HERE / "bub1b_variantes_explicado.html"))
+    ap.add_argument("--static", choices=["es", "en"], help="a single language, no switch")
+    ap.add_argument("-o", "--output", default=str(HERE / "bub1b_variants_explained.html"))
     a = ap.parse_args()
     MODE = a.static or "toggle"
     Path(a.output).write_text(build(), encoding="utf-8")
