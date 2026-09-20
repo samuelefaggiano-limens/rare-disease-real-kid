@@ -100,90 +100,6 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | :--- | :--- | :--- |
 | `track1_step3_exp01-vcf_annotating.ipynb` | Runs the full SnpEff, MyVariant.info, and AlphaGenome pipeline sequentially, producing a final annotated VCF and analysing MVA panel genes (BUB1B has 2 rare variants). | Reduced 591,339 rare variants to 905 HIGH/MODERATE variants, fully annotated and saved in `track1_step3_annotation_and_filtering.vcf.gz`. |
 
----
-
-
-### ~~Step 3: VCF Annotation & Filtering~~
-
-*   ~~**Input:** Pre-filtered VCF (`track1_step2_rare_variants.vcf.gz`, ~591,339 variants).~~
-*   ~~**Action:** Run a sequential cascade — a known-pathogenic lookup, local functional annotation, and population/clinical metadata enrichment — where each stage narrows or enriches the variant set for the next.~~
-*   ~~**Output of the whole step:** `track1_step3_annotation_and_filtering.vcf.gz`, ready for Step 4.~~
-
-#### ~~Stage 3.1: Known-Pathogenic Fast Pass~~
-
-*   ~~**What this does:** Before doing any of our own analysis, we check whether any of our 591,339 candidate variants have already been studied and classified by other clinical laboratories, using the public ClinVar database. Think of it as checking "has anyone already solved this specific line of the genome before?" before we spend hours building our own scoring system.~~
-*   ~~**Input:** `track1_step2_rare_variants.vcf.gz`.~~
-*   ~~**Implementation:**~~
-    *   ~~Download the ClinVar GRCh38 VCF (~100 MB) and its index.~~
-    *   ~~Normalise both our variant file and the ClinVar file with `bcftools norm -f GRCh38.fa -m -any -c w` so that the same mutation is always written the same way in both files (see the note on normalisation below — this is easy to skip and easy to regret skipping).~~
-    *   ~~Intersect the two files (`bcftools isec -n=2 -w1`) and keep only matches flagged "Pathogenic" or "Likely pathogenic."~~
-    *   ~~Record the ClinVar confidence level (the "star rating") for each hit.~~
-*   ~~**Why it matters:** this costs a few minutes of compute and no API calls. Since a team of medical geneticists already diagnosed this child, there is a real chance the causal variant is already sitting in a public clinical database. If we get a hit in a known MVA gene, we may have our answer immediately, and everything after becomes confirmation rather than discovery. If we get nothing, that is useful information too — it tells us the causal variant is probably novel and never recorded anywhere, so we must not treat "absent from ClinVar" as evidence that a variant is harmless later in the pipeline.~~
-
-~~**A note on "normalisation" (relevant to every stage in this step):** the same genetic mutation can be written in more than one equivalent way in a VCF file — for example, a small deletion can be described starting from slightly different positions depending on the software that produced the file. If we don't force every file we use (our data, ClinVar, SnpEff's output) to write mutations the same standard way, two files can describe the identical mutation with different text, and our matching logic will conclude they are different variants — a silent, invisible error. Running `bcftools norm` once, up front, prevents this for every downstream comparison in Step 3.~~
-
-#### ~~Stage 3.2: Local Functional Annotation (SnpEff)~~
-
-*   ~~**What this does:** For every surviving variant, we determine which gene it falls inside, what it does to that gene's protein (does it change one amino acid? does it break the protein entirely?), and how severe that change is predicted to be. This is like translating a raw DNA typo into "this breaks gene X in a serious way" versus "this makes a harmless spelling change."~~
-*   ~~**Input:** `track1_step2_rare_variants.vcf.gz` (normalised).~~
-*   ~~**New annotations added:**~~
-    *   ~~`GENE_SYMBOL` — the gene the variant falls in (e.g. *BUB1B*).~~
-    *   ~~`CONSEQUENCE` — the type of protein-level change (e.g. missense, frameshift, stop-gain).~~
-    *   ~~`PUTATIVE_IMPACT` — a severity bucket: `HIGH`, `MODERATE`, `LOW`, or `MODIFIER`.~~
-    *   ~~`TRANSCRIPT_ID`, `HGVS_C`, `HGVS_P` — the exact transcript used for the call, and standard coding/protein notation (needed later to cross-check against ClinVar and to write a readable `notes` field in the final submission).~~
-    *   ~~`EXON_RANK` / `EXON_TOTAL` — which exon (out of how many) the variant falls in. This matters because a "stop" mutation near the beginning of a gene usually destroys the protein completely, while the same kind of mutation in the very last exon often does much less damage. This distinction becomes important for the drug-mechanism reasoning in Track 2.~~
-*   ~~**Tool:** SnpEff (pin the exact version and GRCh38 database build used, and record both in the methods report).~~
-*   ~~**Transcript choice — using MANE Select, not the longest transcript:** genes can have multiple "versions" (transcripts) of similar but not identical sequence. We must pick one to base our gene/consequence calls on. We use the **MANE Select** transcript — the transcript that NCBI and EBI have jointly designated as the clinical reference for each gene — rather than simply the longest one. This matters because clinical databases like ClinVar report variants against the MANE transcript; if we use a different one, our variant descriptions won't match theirs and cross-referencing will silently fail.~~
-*   ~~**Filtering — what we keep and why:**~~
-    *   ~~Keep only variants where `PUTATIVE_IMPACT` is `HIGH` or `MODERATE`. In plain terms: we discard variants predicted to have little or no effect on the protein (`LOW`/`MODIFIER`), and keep only those predicted to meaningfully change or break the protein. This is expected to reduce ~591,000 variants down to roughly 10,000–20,000.~~
-    *   ~~**Exception — always keep `splice_region_variant` regardless of its severity label.** SnpEff labels these as `LOW` impact by default, which would normally exclude them from the filter above. We override that, because these variants sit in the small stretch of DNA right next to where a gene's coding instructions are "spliced" together, and mutations there are a well-documented cause of serious inherited disease even though the tool underrates their severity. Skipping this exception is one of the easiest ways to accidentally throw away the correct answer.~~
-*   ~~**Output of this stage:** the surviving ~10,000–20,000 variants, now carrying the fields above, held in memory for the next stage.~~
-
-#### ~~Stage 3.3: Population Frequency & Clinical Metadata (MyVariant.info)~~
-
-*   ~~**What this does:** For each of the ~10,000–20,000 surviving variants, we ask a public annotation database three questions: "How common is this variant in healthy people?", "Has a computer model predicted how damaging it is?", and "Has any clinical lab already classified it?" A variant that is common in healthy adults essentially cannot be the cause of an ultra-rare disease, so this stage is largely about elimination by population frequency.~~
-*   ~~**Input:** the surviving variants from Stage 3.2.~~
-*   ~~**New annotations added:**~~
-    *   ~~`GNOMAD_AF` — how frequently this exact variant appears in a reference database of roughly 800,000 people (gnomAD). The lower, the rarer, and the more plausible as a cause of an ultra-rare disease.~~
-    *   ~~`GNOMAD_AF_POPMAX` — the highest frequency seen in any single population group. A variant that looks rare overall but is common in one specific ancestry group is more likely a normal population-specific variant than a disease cause.~~
-    *   ~~`GNOMAD_NHOMALT` — the number of healthy people in that same reference database who carry **two copies** of this variant (one from each parent). This is the single most decisive number in this stage for a recessive disease like MVA: if healthy adults exist who have two copies of this variant and are not sick, it cannot be the two-copy cause of this child's disease, no matter how "damaging" it looks by other measures.~~
-    *   ~~`REVEL` and `ALPHAMISSENSE_SCORE` / `ALPHAMISSENSE_PRED` — two independent computer predictions of how damaging a single-amino-acid change (missense variant) is likely to be. These only apply to missense variants; they will be empty for variants that delete or frameshift the gene, because "how damaging is this amino-acid substitution" isn't a meaningful question for a broken gene.~~
-    *   ~~`CLINVAR_SIG` and `CLINVAR_REVIEW_STATUS` — whether any clinical lab has already classified this exact variant (e.g. "Pathogenic," "Benign," "Uncertain"), and how much confidence to place in that classification (a rating from "one anonymous submission" up to "reviewed by an expert panel"). A single variant can have several conflicting classifications from different submitters, so we keep the highest-confidence one and note if there is disagreement.~~
-    *   ~~`GENE_LOEUF` / `GENE_PLI` — a gene-level (not variant-level) measure of how strongly that gene resists loss-of-function mutations across the human population. A gene where such mutations are almost never seen in healthy people is a gene where a loss-of-function mutation is more likely to cause disease.~~
-*   ~~**Practical details:**~~
-    *   ~~Query the MyVariant.info API in batches of 1,000 variants, with automatic retry if a request fails.~~
-    *   ~~Explicitly request the GRCh38 (`hg38`) version of the database — the service defaults to an older genome build (`hg19`) unless told otherwise, which would silently return the wrong information.~~
-    *   ~~Some fields (ClinVar classifications, REVEL/AlphaMissense scores) can come back as a list with more than one entry, because they are reported per-transcript or per-submission. We reduce each list to a single representative value (the most severe score, or the highest-confidence classification).~~
-*   ~~**Expected gaps in the data (plan for these now, don't be surprised later):**~~
-    *   ~~REVEL and AlphaMissense will be empty for every frameshift, deletion, insertion and splice-region variant — this is expected, not a data quality problem.~~
-    *   ~~Most variants will have no ClinVar entry at all. Absence of a ClinVar record means "nobody has studied this variant yet," not "this variant is harmless." These two must be scored differently later, in Step 5.~~
-*   ~~**Output of this stage — and of Step 3 as a whole:** `track1_step3_annotation_and_filtering.vcf.gz`, the final annotated candidate set, written to disk for use in Step 4.~~
-
-#### ~~Implementation status (branch `track1_opt01-macos-portable`, run 2026-09-17)~~
-
-~~What was actually run diverges from the revised plan above in these points — to be reconciled by the team:~~
-
-*   ~~Implemented as **scripts + one results notebook** (`notebooks/notebook/track1_step3a_annotate.py`, `step3b_alphagenome.py`, `track1_step3_exp01-vcf_annotating.ipynb`), writing intermediate VCFs to disk (`snpeff_annotated.vcf`, `track1_step3a_snpeff_filter.vcf.gz`, `track1_step3b_regulatory_annotated.vcf.gz`), not a single in-memory notebook.~~
-*   ~~**Stage 3.1 (ClinVar fast pass) and `bcftools norm` were not run**; ClinVar is obtained per variant through MyVariant.info instead.~~
-*   ~~snpEff uses `-canon` (canonical transcript), **not MANE Select**; `TRANSCRIPT_ID`/`HGVS_C`/`HGVS_P`/`EXON_RANK` are available inside the raw `ANN=` field but not written as separate tags. `splice_region_variant` (LOW) is **not** kept.~~
-*   ~~MyVariant fields obtained: `GNOMAD_AF`, `GNOMAD_EXOME_AF`, `CADD_PHRED` (via dbNSFP), `REVEL`, `CLINVAR_SIG`, `CLINVAR_REVIEW_STATUS`, `OMIM_PHENOTYPE`. **Not yet obtained:** `GNOMAD_AF_POPMAX`, `GNOMAD_NHOMALT`, `ALPHAMISSENSE_*`, `GENE_LOEUF`/`GENE_PLI`. `assembly=hg38` confirmed as mandatory (see `02-findings.md`).~~
-*   ~~An additional **Step 3B (AlphaGenome Atlas AVI)** was run: `AVI_SCORE`, `AVI_QUANTILE`, `AVI_PHRED`, `REGULATORY_FEATURE`, `AVI_STATUS` (SNVs only).~~
-*   ~~Real outcome: 591,339 -> **1,526** HIGH/MODERATE (not 10–20k); 1,212 of them have gnomAD AF > 1 % because dbSNP Common misses most common coding variants.~~
-
-*   ~~**Implementation notes (`notebooks/notebook/step3b_alphagenome.py`, alphagenome 0.9.0, verified against the live API on 2026-09-17):**~~
-    *   ~~The client must be created with `atlas.create(api_key)`; a bare `AtlasClient()` has no gRPC stub. The key is read from `ALPHAGENOME_API_KEY` (env or `~/.env`).~~
-    *   ~~Scorers used: `AVI_SCORE` (raw score, plus a `quantiles` layer) and `AVI_SCORE_FEATURE_IMPORTANCE` (18 modalities). Tags written: `AVI_SCORE`, `AVI_QUANTILE`, `AVI_PHRED` (= -10 log10(1 - quantile); >= 20 is the top 1 % of genome-wide SNVs, >= 30 the top 0.1 %), `REGULATORY_FEATURE` (modality with the largest attribution, e.g. `MERGED_SPLICING`, `ALPHAMISSENSE`, `MAX_ABS_RNA_SEQ`), `AVI_STATUS`.~~
-    *   ~~**`TARGET_GENE` is not returned by the AVI scorers** and is therefore not written; the gene remains snpEff's `GENE_SYMBOL` from Step 3A.~~
-    *   ~~The server validates the REF allele against GRCh38 and one bad variant fails the whole batch; the script falls back to single-variant queries and records `AVI_STATUS=ref_mismatch` for the offenders instead of aborting. Infrastructure errors still abort after 5 retries (fail-loud contract).~~
-    *   ~~Downstream use: Step 5 feeds `AVI_PHRED` into the pathogenicity component on the same Phred scale as CADD.~~
-
-~~**Experiments:**~~
-
-| ~~Notebook~~ | ~~Description~~ | ~~Results~~ |
-| :--- | :--- | :--- |
-| | | |
-
-
 ### Step 4: Gene Prioritization & Phenotype Matching
 
 *   **Input:**
@@ -208,8 +124,6 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
 | | | |
-
----
 
 ### Step 5: Ranking and Submission
 

@@ -313,7 +313,7 @@ def main():
 
     if not Path(args.input).exists():
         sys.exit(f"[-] Input VCF not found: {args.input}\n"
-                 f"    Generate snpeff_annotated.vcf with snpEff first (see CLAUDE.md).")
+                 f"    Generate snpeff_annotated.vcf with snpEff first.")
 
     print(f"[+] Annotating {args.input} -> {args.output}")
     print(f"    batches of {args.batch_size}, {args.workers} in parallel")
