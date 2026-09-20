@@ -60,13 +60,13 @@ FALLBACK_HPO = ["HP:0002859", "HP:0000121", "HP:0004322", "HP:0001508",
 
 # MVA panel: docs/00-references.md section 2.
 MVA_PANEL = {"BUB1B": "MVA1 (OMIM:257300)", "CEP57": "MVA2 (OMIM:614114)",
-             "TRIP13": "MVA3 (OMIM:617598)", "MAD2L1BP": "p31comet, biallelic aneuploidy"}
+             "TRIP13": "MVA3 (OMIM:617598)", "MAD2L1BP": "p31comet, biallelic aneuploidy", "CENATAC": "MVA4 (OMIM:619970)", "CCDC84": "MVA4", "CEP192": "MVA with tetraploidy", "SMC5": "Atelis Syndrome / MVA", "BUB1": "MCPH30 / MVA syndrome"}
 MVA_DISEASE_IDS = {"OMIM:257300", "OMIM:614114", "OMIM:617598", "ORPHA:1052"}
 
 # Spindle assembly checkpoint (SAC), kinetochore and centrosome: the machinery
 # whose loss produces mosaic aneuploidy. Curated list, not exhaustive.
 SAC_CENTROSOME = {
-    "BUB1", "BUB3", "MAD1L1", "MAD2L1", "TTK", "CDC20", "CENPE", "KNL1", "ZW10",
+    "BUB3", "MAD1L1", "MAD2L1", "TTK", "CDC20", "CENPE", "KNL1", "ZW10",
     "ZWILCH", "ZWINT", "SPDL1", "AURKB", "PLK1", "CENPF", "PCNT", "CDK5RAP2",
     "CEP152", "CEP135", "CEP63", "NDE1", "CENPJ", "KIF11", "ESPL1", "PTTG1",
     "SGO1", "CDCA8", "INCENP", "BIRC5", "NUF2", "NDC80", "SPC24", "SPC25",

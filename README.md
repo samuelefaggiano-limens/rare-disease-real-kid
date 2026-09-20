@@ -35,7 +35,7 @@ We are permitted up to **6 submissions**. Each submission requires three compone
 #### 1. Predictions File Format (`track1_submission_template.csv`)
 The CSV must contain one row per proposed causal variant (or compound-heterozygous pair). 
 *   **Ranking:** Rows must be ranked by our Estimated Probability of Causal Relationship (`epcr`), where 1 is the most likely and 0 is the least.
-*   **File Naming:** `<username>_<model-name>.csv` (e.g., `SamueleFaggiano_variant-filter-v1.csv`).
+*   **File Naming:** `<username>_<model-name>.csv`.
 *   **Key Fields:** 
     *   `proband_id`: Provided in the dataset.
     *   `chrom_1`, `pos_1`, `ref_1`, `alt_1`: Coordinates (GRCh38) and alleles for the primary variant.

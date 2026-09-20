@@ -103,30 +103,31 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 ### Step 4: Gene Prioritization & Phenotype Matching
 
 *   **Input:**
-    *   The patient's extracted clinical HPO terms (from Step 1).
+    *   The patient's extracted clinical HPO terms (from Step 1) in `data/hpo_terms.txt`.
     *   `track1_step3_annotation_and_filtering.vcf.gz`.
 *   **Action:** Compare the genes disrupted by our candidate variants against the child's actual documented symptoms, and boost variants in genes that are already known to cause this specific disease.
 *   **Implementation Details:**
     *   **Gene mapping:** each variant is linked to a gene using SnpEff's `GENE_SYMBOL` from Stage 3.2.
     *   **Matching symptoms to genes (semantic similarity):** matching the child's symptoms to a gene's known symptoms cannot rely on exact text matching, because doctors and databases describe the same underlying problem in different words (e.g. "seizures" versus the broader "abnormality of the nervous system"). We instead use the **Human Phenotype Ontology (HPO)**, a structured map of how medical terms relate to one another, and measure how *close* the child's symptoms are to each candidate gene's known symptom profile, using standard similarity algorithms (Resnik, Lin) via the `pyhpo` library. Each variant receives a `PHENOTYPE_SIMILARITY_SCORE` based on this closeness.
-        *   We also record a `PHENOTYPE_SCORE_IS_NULL` flag for genes that have **no** documented symptom profile at all in the database. This distinction matters: a gene with no documented symptoms is simply unstudied, which is different from a gene whose documented symptoms clearly don't match this child. Both would otherwise score as "0," which would unfairly bury variants in unstudied genes — and this disease is rare enough that an unstudied gene is a real possibility.
+        We also record a `PHENOTYPE_SCORE_IS_NULL` flag for genes that have **no** documented symptom profile at all in the database. This distinction matters: a gene with no documented symptoms is simply unstudied, which is different from a gene whose documented symptoms clearly don't match this child. Both would otherwise score as "0," which would unfairly bury variants in unstudied genes — and this disease is rare enough that an unstudied gene is a real possibility.
     *   **Reference data:** we load the HPO project's `genes_to_phenotype.txt` file locally (rather than querying a live web API), and record exactly which release version of this file we used, so the analysis can be reproduced later.
     *   **The MVA gene panel (targeted boost):** MVA is primarily caused by defects in a cellular quality-control system called the Spindle Assembly Checkpoint, plus related centrosome biology. We compile a list of relevant genes and give variants in those genes a boost — but not all genes on the list are equally certain, so we use two confidence tiers rather than one:
-        *   **Tier 1 — genes with confirmed causal roles in MVA specifically:** *BUB1B*, *CEP57*, *TRIP13*, *CENATAC*/*CCDC84*. These receive a strong boost.
-        *   **Tier 2 — genes involved in the same general biological system, but not established causes of MVA specifically:** *MAD2L1, CDC20, CENPE, SGO1, AURKB, PLK1, MAD1L1, BUB1, BUB3, TTK, ESPL1, PTTG1, NDC80, CENPF*. These receive a smaller boost. Splitting the list this way matters because some of these genes are already known to cause *other*, different diseases when disrupted — a large boost applied indiscriminately to all of them risks pushing an unrelated finding above the real answer.
+        *   **Tier 1 — genes with confirmed causal roles in MVA specifically:** *BUB1B*, *CEP57*, *TRIP13*, *CENATAC*/*CCDC84*, *MAD2L1BP*, *CEP192*, *SMC5*, *BUB1*. These receive a strong boost.
+        *   **Tier 2 — genes involved in the same general biological system, but not established causes of MVA specifically:** *MAD2L1, CDC20, CENPE, SGO1, AURKB, PLK1, MAD1L1, BUB3, TTK, ESPL1, PTTG1, NDC80, CENPF*. These receive a smaller boost. Splitting the list this way matters because some of these genes are already known to cause *other*, different diseases when disrupted — a large boost applied indiscriminately to all of them risks pushing an unrelated finding above the real answer.
         *   This gene panel, with a short note on why each gene is included, is kept in its own file (`data/mva_panel.tsv`) rather than buried in code, so it is easy to review and update.
     *   **Identifying compound-heterozygous candidates:** MVA is usually recessive, meaning it typically requires *both* copies of a gene to be broken — either the same broken copy inherited from both parents, or two different broken copies, one from each parent (a "compound heterozygous" case). We group our surviving variants by gene and flag any gene carrying two or more different candidate variants, since this is exactly the pattern the final submission format is designed to capture. Because we do not have the parents' DNA, we cannot directly prove that two such variants came from different parents — we can only note that a gene carries two plausible broken copies, and we state this limitation clearly rather than overstating our confidence.
 *   **Tools:** Python (`pyhpo`, `networkx`, `pandas`), the local `genes_to_phenotype.txt` dataset, `data/mva_panel.tsv`.
-*   **Output:** a master candidate table (CSV), enriched with `PHENOTYPE_SIMILARITY_SCORE`, `PHENOTYPE_SCORE_IS_NULL`, `MVA_PANEL_TIER`, and `COMPOUND_HET_CANDIDATE`, ready for final ranking in Step 5.
+*   **Output:** a master candidate table (CSV) in `track1_step4_phenotype_matching.csv`, enriched with `PHENOTYPE_SIMILARITY_SCORE`, `PHENOTYPE_SCORE_IS_NULL`, `MVA_PANEL_TIER`, and `COMPOUND_HET_CANDIDATE`, ready for final ranking in Step 5.
 
 **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ### Step 5: Ranking and Submission
 
+*  **Input:**
 *   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`), a number between 0 and 1, to each candidate variant, representing how confident our pipeline is that this specific variant is the true cause of the disease.
 *   **How we calculate it:** a transparent, hand-weighted scoring formula (not a trained machine-learning model — we only have one true answer in this entire project, and we don't know it, so there is no way to properly train or validate a model here; a manually weighted formula is also far easier to explain and double-check).
     *   We score **two separate types of variant differently**, because the evidence available for each type is completely different:
@@ -149,13 +150,11 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   Keep one or two submissions in reserve for later refinements once the full pipeline's early results are in.
 *   **Output:** the ranked candidate list written to `output/track1/track1_submission_template.csv`, named `<username>_<model-name>.csv`.
 
-#### Implementation status (branch `track1_opt01-macos-portable`)
-
 **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ---
 
@@ -173,7 +172,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ### Step 2: Identifying Druggable Targets (Finding a Workaround)
 *   **Action:** A "druggable target" is a part of the cell that a medicine can physically latch onto. If the mutation completely destroyed a protein (it's missing), a drug can't latch onto something that isn't there. We have to find a workaround somewhere else in the biological assembly line.
@@ -185,7 +184,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ### Step 3: Computational Drug Screening
 *   **Action (Finding the "Key" for our "Lock"):** In Step 2, we identified the specific protein we need to target (the "lock"). Now, we search through massive databases of known chemical compounds and FDA-approved medicines to find the specific drug (the "key") that fits into our lock and produces the desired effect (e.g., turning the protein off, or stabilizing it).
@@ -197,7 +196,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ### Step 4: Rationalization and Selection
 *   **Action:** Filter the list of potential drugs based on real-world constraints:
@@ -209,7 +208,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| | | |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ### Step 5: Deliverables Generation
 *   **Output:** 
