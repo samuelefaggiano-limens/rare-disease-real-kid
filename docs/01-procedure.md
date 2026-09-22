@@ -145,7 +145,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   A compound-heterozygous pair identified in Step 4 → both variants go on the **same row**, one in the `_1` columns and one in the `_2` columns, sharing a single `epcr` score. A proposed pair must never be split across two separate rows — the scoring system treats each row as one complete hypothesis, and splitting a pair turns one potentially fully-correct guess into two only-half-credit guesses.
     *   A single, extremely severe variant proposed as a dominant/spontaneous cause → `_1` columns alone.
     *   The `notes` field for each row should briefly state the gene, the exact mutation, what it does to the protein, and the one-line reason we believe it's relevant.
-*   **Output:** the notebook `/notebooks/track1_step5_exp01-ranking.ipynb` displays the top 10 candidates with their EPCR scores. 
+*   **Output:** the notebook `/notebooks/track1_step5_exp01-ranking.ipynb` saves the top 10 candidates with their EPCR scores. 
 
 **Experiments:**
 

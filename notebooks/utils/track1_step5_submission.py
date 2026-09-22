@@ -37,7 +37,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.epcr import (CandidateRow, assign_epcr, combine, frequency_score,  # noqa: E402
+from notebooks.utils.epcr import (CandidateRow, assign_epcr, combine, frequency_score,  # noqa: E402
                       inheritance_score, pathogenicity_score, what_if_table)
 
 DEFAULT_INPUT = REPO_ROOT / "data" / "track1_step4_candidates.tsv"
