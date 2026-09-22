@@ -127,34 +127,31 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 ### Step 5: Ranking and Submission
 
-*  **Input:**
+*   **Input:** `data/track1_step4_candidates.tsv` (the prioritized candidate variants from Step 4).
 *   **Action:** Assign an Estimated Probability of Causal Relationship (`epcr`), a number between 0 and 1, to each candidate variant, representing how confident our pipeline is that this specific variant is the true cause of the disease.
-*   **How we calculate it:** a transparent, hand-weighted scoring formula (not a trained machine-learning model — we only have one true answer in this entire project, and we don't know it, so there is no way to properly train or validate a model here; a manually weighted formula is also far easier to explain and double-check).
-    *   We score **two separate types of variant differently**, because the evidence available for each type is completely different:
-        *   **Loss-of-function variants** (frameshift, stop-gain, and similar): scored mainly on `PUTATIVE_IMPACT = HIGH`, whether the affected exon position means the broken protein is likely eliminated by the cell's own quality control (nonsense-mediated decay), and how strongly the gene resists this kind of damage in the general population (`GENE_LOEUF`). REVEL and AlphaMissense are not used here, because those scores don't apply to this type of variant.
-        *   **Missense variants** (single amino-acid changes): scored mainly on REVEL and AlphaMissense.
-    *   Both branches also factor in: extreme rarity in the general population and zero healthy people carrying two copies (`GNOMAD_AF`, `GNOMAD_NHOMALT`); a genotype pattern consistent with the expected inheritance pattern; a strong symptom match (`PHENOTYPE_SIMILARITY_SCORE`); membership in the Tier 1 MVA gene list; and any existing clinical classification, weighted by how confident that classification is.
-*   **Handling missing information correctly:** several fields will legitimately be blank for many variants, and the scoring formula must treat "blank" correctly rather than as "bad":
-    *   A missing REVEL/AlphaMissense score on a frameshift variant is expected — that variant is simply scored using the loss-of-function branch instead.
-    *   No ClinVar entry means "unstudied," not "harmless" — it should not lower a variant's score, since the true cause of this child's disease may well be a variant nobody has ever recorded before.
-    *   A missing phenotype-similarity score (flagged by `PHENOTYPE_SCORE_IS_NULL`) should fall back on the gene-constraint information instead of being treated as "no symptom match."
-*   **Designing the submission for how it will be scored:** the competition rewards a *confident, well-separated* ranking far more than a long list of guesses. As the challenge describes it, submitting one very high-confidence correct guess alongside a handful of clearly low-confidence wrong guesses scores near-perfectly, while submitting many guesses that are all rated similarly highly scores poorly — even if the correct answer is technically included. In practical terms: submit a short list (roughly 5–10 rows, not 50), with a clear score gap between our top pick(s) and everything else, rather than a smooth spread of similar-looking scores.
+*   **How we calculate it:** a transparent, hand-weighted scoring formula that uses a unified approach for all variant types (not a trained machine-learning model — we only have one true answer in this entire project, and we don't know it, so there is no way to properly train or validate a model here; a manually weighted formula is also far easier to explain and double-check).
+    *   **Pathogenicity:** Sets a baseline using `PUTATIVE_IMPACT`, which is then elevated or lowered if in-silico scores (`CADD_PHRED`, `REVEL`, `AVI_PHRED`) are present. ClinVar classifications also heavily influence this component.
+    *   **Frequency:** Variants are scored on their rarity in the general population using `GNOMAD_AF`.
+    *   **Inheritance:** Scores how well the genotype pattern fits the expected MVA model (e.g., homozygous or compound heterozygous).
+    *   **Phenotype:** Evaluates symptom match (`PHENOTYPE_SIMILARITY_SCORE`).
+    *   **MVA Panel Boost:** A 1.2x bonus is applied to variants in genes matching the MVA panel.
+*   **Handling missing information correctly:** several fields will legitimately be blank for many variants:
+    *   Missing in-silico scores do not negatively impact a `HIGH` impact variant's baseline score.
+    *   No ClinVar entry means "unstudied," not "harmless" — it does not lower a variant's score.
+    *   A missing phenotype-similarity score defaults to 0.0.
+*   **Designing the submission for how it will be scored:** the competition rewards a *confident, well-separated* ranking far more than a long list of guesses. As the challenge describes it, submitting one very high-confidence correct guess alongside a handful of clearly low-confidence wrong guesses scores near-perfectly, while submitting many guesses that are all rated similarly highly scores poorly — even if the correct answer is technically included. In practical terms: submit a short list (up to 10 rows), with a clear score gap between our top pick(s) and everything else, rather than a smooth spread of similar-looking scores.
 *   **Building each row of the submission file:**
     *   A variant found as two identical copies (homozygous) → goes in the `_1` columns alone, `_2` left blank.
     *   A compound-heterozygous pair identified in Step 4 → both variants go on the **same row**, one in the `_1` columns and one in the `_2` columns, sharing a single `epcr` score. A proposed pair must never be split across two separate rows — the scoring system treats each row as one complete hypothesis, and splitting a pair turns one potentially fully-correct guess into two only-half-credit guesses.
     *   A single, extremely severe variant proposed as a dominant/spontaneous cause → `_1` columns alone.
     *   The `notes` field for each row should briefly state the gene, the exact mutation, what it does to the protein, and the one-line reason we believe it's relevant.
-*   **Using our six submission attempts wisely:**
-    *   Submit the Step 3.1 ClinVar fast-pass result first, early on, as a low-cost baseline.
-    *   Use the next few submissions for the full pipeline's output as it is refined, ideally changing one meaningful thing at a time so we can tell what changed the leaderboard score.
-    *   Keep one or two submissions in reserve for later refinements once the full pipeline's early results are in.
-*   **Output:** the ranked candidate list written to `output/track1/track1_submission_template.csv`, named `<username>_<model-name>.csv`.
+*   **Output:** the notebook `/notebooks/track1_step5_exp01-ranking.ipynb` displays the top 10 candidates with their EPCR scores. 
 
 **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
+| `track1_step5_exp01-ranking.ipynb` | Applies the EPCR scoring logic to the prioritized variants, groups compound-heterozygous pairs, and formats the top 10 candidates. | Identified BUB1B compound-heterozygous pair as top candidate (EPCR=0.9379) and exported to `output/track1/templates/track1_submission_template.csv`. |
 
 ---
 
@@ -175,14 +172,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 | `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
 ### Step 2: Identifying Druggable Targets (Finding a Workaround)
-*   **Action:** A "druggable target" is a part of the cell that a medicine can physically latch onto. If the mutation completely destroyed a protein (it's missing), a drug can't latch onto something that isn't there. We have to find a workaround somewhere else in the biological assembly line.
-*   **Strategies:**
-    *   *The "Flood Control" Strategy (Downstream inhibition):* If the broken gene normally acts as a dam holding back a process, its absence causes a runaway biological flood. We look for a drug that targets and stops the runaway process further downstream.
-    *   *The "Seesaw" Strategy (Compensation):* If the broken gene tipped the biological scales out of balance, is there *another* functioning protein we can drug to tip the scales back to normal?
-    *   *The "Scaffolding" Strategy (Chaperones):* If the mutation didn't destroy the protein completely, but just bent it out of shape, we look for a drug (a "pharmacological chaperone") that acts like a brace, holding the protein in the correct shape so it works again.
-*   **Experiments:**
-
-| Notebook | Description | Results |
+*   Notebook | Description | Results |
 | :--- | :--- | :--- |
 | `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
 
