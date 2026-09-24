@@ -3,22 +3,22 @@
 *This document contains the required answers for the Track 1 submission, integrating the findings and methodology from our computational pipeline.*
 
 ### 1. Team name
-"Los Tanos"
+Los Tanos
 
 ### 2. Model number 
-Model 1 
+Model 1
 
 ### 3. Please describe your model/approach in detail.
 Our computational approach consists of a 5-step automated pipeline designed for high-precision variant prioritization:
 
 *   **Step 1 (Phenotype Extraction):** We extracted 8 core HPO terms from the clinical document, including HP:0002859 (Rhabdomyosarcoma) and HP:0200067 (Recurrent spontaneous abortion), which provided strong phenotypic signals matching MVA syndrome susceptibility literature.
 *   **Step 2 (VCF Pre-Filtering):** To eliminate noise, we applied strict intrinsic QC filters (GQ>=20, DP>=10, 'PASS') and an Allelic Balance filter (0.30 - 0.70 for heterozygous variants). We then performed an allele-aware subtraction against dbSNP Common (MAF >= 1%). This step efficiently stripped 88.2% of the raw VCF, reducing the initial 5,012,204 variants to 591,339 ultra-rare and high-quality variants.
-*   **Step 3 (Annotation):** We annotated the surviving variants using a locally built snpEff GRCh38.99 database, MyVariant.info (assembly=hg38), and AlphaGenome Atlas. This isolated 1,526 protein-altering (HIGH/MODERATE) variants. gnomAD AF was utilized as the effective frequency filter (max AF 1%).
+*   **Step 3 (Annotation):** We annotated the surviving variants using a locally built snpEff GRCh38.99 database, MyVariant.info (assembly=hg38), and AlphaGenome Atlas. This isolated 905 protein-altering (HIGH/MODERATE) variants. gnomAD AF was utilized as the effective frequency filter (max AF 1%).
 *   **Step 4 (Phenotype Matching):** We applied an ontology-aware Resnik semantic similarity model to rank genes against the patient's HPO profile. *BUB1B* ranked #2 genome-wide (similarity score 0.632) and was uniquely identified as the only Tier 1 MVA panel gene carrying rare HIGH/MODERATE variants.
 *   **Step 5 (Ranking & EPCR Scoring):** We unified phenotype similarity, pathogenicity scores (CADD, REVEL, AVI_PHRED, ClinVar), allele frequencies, and inheritance modeling into an Estimated Probability of Causal Relationship (EPCR). The pipeline successfully isolated a compound-heterozygous pair in *BUB1B* (a stop-gain and a missense variant) as the top candidate. It achieved an EPCR of 0.9379, showing a massive and confident separation from the second-ranked candidate (LZTR1, EPCR=0.5627).
 
 ### 4. (required) If commercially-available Generative AI was used, record the provider...
-Gemini Pro, Claude Opus, ...
+Google (Gemini Pro), Anthropic (Claude Opus).
 
 ### 5. Please state whether the submission file is the automated output of your computational approach (preferred), or if it has undergone downstream manual review and curation.
 The submission file is the completely automated output of our computational approach. The EPCR scoring and final ranking (including the confident separation of the BUB1B compound-heterozygous variants) were generated programmatically without downstream manual review or expert curation.
@@ -59,11 +59,12 @@ This capability is clearly demonstrated by our top-ranked primary finding in the
 
 ### 10. How did you handle secondary or incidental findings, if any? (See the finding_type column in your submission.)   
 Our pipeline was specifically optimized to identify the genetic driver of the patient's primary clinical presentation. Because our EPCR calculation heavily relies on an ontology-aware Resnik semantic similarity model to match variants against the patient's specific HPO profile, we intentionally did not curate or flag secondary findings. Consequently, all variants in our top 10 submission are designated as `primary`.
-Coming from a foundational background in biological sciences rather than specialized genomic bioinformatics, we approached this dataset with a profound sense of ethical responsibility. We firmly believe that computational power must be guided by strict clinical criteria. It is often tempting to leverage AI to mine the genome and report secondary or incidental findings merely to showcase technical capability. However, doing so without a direct clinical mandate often generates erroneous assumptions and harmful "noise" rather than actionable medical insight. We view this kind of over-reporting as an irresponsible use of AI in a healthcare context.
+Coming from a foundational background in biological sciences rather than specialized genomic bioinformatics, we approached this dataset with a profound sense of ethical responsibility. We firmly believe that computational power must be guided by strict clinical criteria. It is often tempting to leverage AI to mine the genome and report secondary or incidental findings merely to showcase technical capability. However, doing so without a direct clinical mandate often generates erroneous assumptions and harmful "noise" rather than actionable medical insight.
 This commitment to responsible analysis also guided our technical decisions. For instance, we faced a methodological dilemma regarding non-coding regions. We understand that these are vital regulatory zones, yet our extensive literature review into standard diagnostic workflows revealed that they are often excluded in this specific type of investigation to manage false positives. By acknowledging our boundaries and rigorously researching established protocols to build our clinical criteria, we chose to align with standard practices rather than blindly processing data. Therefore, variants that might be pathogenic but have weak phenotype similarity (such as those in Tier 2 genes *SGO1* and *MAD1L1*) were naturally penalized by our scoring system, ensuring our output remains strictly focused on the patient's true diagnostic need.
 
 
 ### 11. Please provide an estimate of run time and cost for your approach (if possible).  
+The run time is close to 1 minute (with all datasets already downloaded). There are no costs associated to it except for the hardware (at least 2 cores, 8GB free disk space, 8GB RAM) where the code runs. 
 
 
 ### 12. Provide a method abstract (up to 500 words). 
@@ -84,5 +85,6 @@ The primary limitation of our approach is its dependency on single-sample VCFs, 
 * **Multidimensional Scoring:** The EPCR metric effectively integrates multiple distinct dimensions of data, including pathogenicity scores (CADD, REVEL, AVI_PHRED), population frequencies (gnomAD), and ontology-aware phenotype similarity (Resnik).
 * **Public Data Reliance:** The exclusive use of open-source databases ensures high reproducibility and accessibility.
 
-**Methodological Limitations:*** **Phase Ambiguity:** Because the pipeline operates on single-sample VCFs rather than familial trios, the phase of compound heterozygous variants cannot be definitively confirmed computationally; true *in trans* configuration requires downstream familial segregation analysis.
+**Methodological Limitations:**
+* **Phase Ambiguity:** Because the pipeline operates on single-sample VCFs rather than familial trios, the phase of compound heterozygous variants cannot be definitively confirmed computationally; true *in trans* configuration requires downstream familial segregation analysis.
 * **Ontology Gaps:** The phenotype matching step relies heavily on the completeness of existing HPO databases. As we noted during our analysis, database coverage for some MVA panel genes is partial, meaning novel or uncurated gene-to-phenotype associations might be artificially penalized.
