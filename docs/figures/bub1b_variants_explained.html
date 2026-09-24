@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The two BUB1B variants, explained</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f5f5f5; --color-ink: #2d3142; --color-muted: #4f5d75; --color-accent: #eb6c36;
+      --font-sans: 'Geist', system-ui, sans-serif; --font-serif: 'Instrument Serif', serif; --font-mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+           min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+               text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400;
+         letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 0.5rem; padding-right: 12rem; }
+    .sub { color: var(--color-muted); font-size: 0.9rem; max-width: 60ch; margin-bottom: 1.5rem; line-height: 1.45; }
+    svg { width: 100%; min-width: 900px; display: block; }
+    .colophon { margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid rgba(45,49,66,0.12);
+                font-family: var(--font-mono); font-size: 0.66rem; color: var(--color-muted); line-height: 1.6; }
+    input[name="lang"] { position: absolute; opacity: 0; pointer-events: none; }
+    #lang-en:checked ~ .frame .es, #lang-es:checked ~ .frame .en { display: none; }
+    .lang-switch { position: absolute; top: 0; right: 0; display: inline-flex; border: 1px solid rgba(45,49,66,0.25);
+                   border-radius: 6px; overflow: hidden; font-family: var(--font-mono); font-size: 0.66rem;
+                   letter-spacing: 0.08em; text-transform: uppercase; }
+    .lang-switch label { padding: 0.35rem 0.7rem; cursor: pointer; color: var(--color-muted); background: #ffffff; }
+    .lang-switch label + label { border-left: 1px solid rgba(45,49,66,0.25); }
+    #lang-es:checked ~ .frame .lang-switch label[for="lang-es"],
+    #lang-en:checked ~ .frame .lang-switch label[for="lang-en"] { background: var(--color-ink); color: #ffffff; }
+    .frame { position: relative; }
+  </style>
+</head>
+<body>
+    <input type="radio" name="lang" id="lang-en" checked>
+    <input type="radio" name="lang" id="lang-es">
+  <div class="frame">
+    <div class="lang-switch" aria-label="Language / Idioma">
+      <label for="lang-en">English</label><label for="lang-es">Español</label>
+    </div>
+    <p class="eyebrow"><span class="es">Track 1 · Paso 3 · gen BUB1B</span><span class="en">Track 1 · Step 3 · BUB1B gene</span></p>
+    <h1><span class="es">Dos cambios de una sola letra en el gen </span><span class="en">Two single-letter changes in the </span><em>BUB1B</em><span class="es">, y por qué importa que haya dos</span><span class="en"> gene, and why it matters that there are two</span></h1>
+    <p class="sub"><span class="es">El ADN es un texto escrito con cuatro letras (A, C, G, T). Un gen es un capítulo de ese texto que la célula lee de a tres letras para armar una proteína, ladrillo a ladrillo. En el genoma del paciente encontramos dos letras cambiadas en el mismo capítulo.</span><span class="en">DNA is a text written with four letters (A, C, G, T). A gene is a chapter of that text which the cell reads three letters at a time to build a protein, brick by brick. In the patient&#x27;s genome we found two changed letters in the same chapter.</span></p>
+
+    <svg viewBox="0 0 1000 820" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bub1b-title bub1b-desc">
+      <title id="bub1b-title">The two BUB1B variants, explained</title>
+      <desc id="bub1b-desc">Map of the BUB1B gene on chromosome 15 with two heterozygous variants, one in exon 17 creating a premature STOP signal and one in exon 23 replacing an amino acid, followed by an explanation of heterozygosity and the two possible phase scenarios.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- A. Where the gene is -->
+      <text class="es" x="40" y="28" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">A · DÓNDE ESTÁ EL GEN</text><text class="en" x="40" y="28" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">A · WHERE THE GENE IS</text>
+      <text class="es" x="40" y="66" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Cromosoma 15</text><text class="en" x="40" y="66" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Chromosome 15</text>
+      <text class="es" x="40" y="80" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">1 de los 23 pares</text><text class="en" x="40" y="80" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">1 of the 23 pairs</text>
+      <rect x="180" y="56" width="760" height="20" rx="10" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="312" y="58" width="12" height="16" rx="6" fill="rgba(45,49,66,0.18)"/>
+      <rect x="472" y="56" width="8" height="20" rx="2" fill="#2d3142"/>
+      <text x="476" y="46" fill="#2d3142" font-size="9" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">BUB1B</text>
+      <text class="es" x="940" y="92" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end" letter-spacing="0.06em">102 MILLONES DE LETRAS</text><text class="en" x="940" y="92" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end" letter-spacing="0.06em">102 MILLION LETTERS</text>
+      <line x1="476" y1="76" x2="476" y2="112" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="180" y1="112" x2="940" y2="112" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="180" y1="112" x2="180" y2="148" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="940" y1="112" x2="940" y2="148" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="520" y="92" width="120" height="14" rx="2" fill="#f5f5f5"/>
+      <text class="es" x="580" y="102" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">ZOOM × 1700</text><text class="en" x="580" y="102" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">ZOOM × 1700</text>
+      <text class="es" x="40" y="176" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Gen BUB1B</text><text class="en" x="40" y="176" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">BUB1B gene</text>
+      <text class="es" x="40" y="190" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">60 mil letras · 23 exones</text><text class="en" x="40" y="190" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">60,000 letters · 23 exons</text>
+      <line x1="180" y1="172" x2="940" y2="172" stroke="rgba(79,93,117,0.55)" stroke-width="1"/>
+      <rect x="188" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="220" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="252" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="284" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="316" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="348" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="380" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="412" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="444" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="476" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="508" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="540" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="572" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="604" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="636" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="668" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="700" y="164" width="16" height="16" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/><rect x="732" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="764" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="796" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="828" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="860" y="164" width="16" height="16" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/><rect x="892" y="164" width="16" height="16" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+      <g fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">
+        <text x="196" y="196">1</text><text x="324" y="196">5</text><text x="484" y="196">10</text>
+        <text x="644" y="196">15</text><text x="708" y="196" fill="#eb6c36" font-weight="600">17</text>
+        <text x="804" y="196">20</text><text x="900" y="196" fill="#eb6c36" font-weight="600">23</text>
+      </g>
+      <line x1="188" y1="212" x2="300" y2="212" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="308" y="205" width="200" height="14" rx="2" fill="#f5f5f5"/>
+      <text class="es" x="312" y="216" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">la célula lee de izquierda a derecha, de a 3 letras</text><text class="en" x="312" y="216" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">the cell reads left to right, 3 letters at a time</text>
+      <line x1="708" y1="164" x2="708" y2="128" stroke="#eb6c36" stroke-width="1"/>
+      <circle cx="708" cy="128" r="6" fill="#eb6c36"/>
+      <text x="708" y="131" fill="#ffffff" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+      <line x1="900" y1="164" x2="900" y2="128" stroke="#eb6c36" stroke-width="1"/>
+      <circle cx="900" cy="128" r="6" fill="#eb6c36"/>
+      <text x="900" y="131" fill="#ffffff" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">2</text>
+      <rect x="640" y="132" width="52" height="14" rx="2" fill="#f5f5f5"/>
+      <text class="es" x="666" y="142" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.10em">CAMBIO 1</text><text class="en" x="666" y="142" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.10em">CHANGE 1</text>
+      <rect x="816" y="132" width="52" height="14" rx="2" fill="#f5f5f5"/>
+      <text class="es" x="842" y="142" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.10em">CAMBIO 2</text><text class="en" x="842" y="142" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.10em">CHANGE 2</text>
+      <text class="es" x="960" y="216" fill="#4f5d75" font-size="12" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">exones dibujados a igual tamaño; el gen real no es así de prolijo</text><text class="en" x="960" y="216" fill="#4f5d75" font-size="12" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">exons drawn at equal size; the real gene is not this tidy</text>
+
+      <!-- B. Zoom -->
+      <line x1="40" y1="236" x2="960" y2="236" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text class="es" x="40" y="256" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">B · ZOOM A LAS LETRAS Y SUS VECINAS</text><text class="en" x="40" y="256" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">B · ZOOM INTO THE LETTERS AND THEIR NEIGHBOURS</text>
+      
+      <rect x="40" y="272" width="440" height="176" rx="6" fill="#ffffff" stroke="rgba(45,49,66,0.14)" stroke-width="1"/>
+      <circle cx="62" cy="294" r="6" fill="#eb6c36"/>
+      <text x="62" y="297" fill="#ffffff" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+      <text class="es" x="76" y="298" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Exón 17 · una letra crea una señal de STOP</text><text class="en" x="76" y="298" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Exon 17 · one letter creates a STOP signal</text>
+      <g font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle"><text x="76" y="336" fill="#7a8399">…</text><text x="100" y="336" fill="#7a8399">C</text><text x="124" y="336" fill="#7a8399">A</text><text x="148" y="336" fill="#7a8399">G</text><text x="172" y="336" fill="#7a8399">A</text><text x="196" y="336" fill="#7a8399">G</text><text x="220" y="336" fill="#2d3142" font-weight="600">T</text><text x="268" y="336" fill="#2d3142" font-weight="600">A</text><text x="292" y="336" fill="#7a8399">A</text><text x="316" y="336" fill="#7a8399">G</text><text x="340" y="336" fill="#7a8399">T</text><text x="364" y="336" fill="#7a8399">G</text><text x="388" y="336" fill="#7a8399">C</text><text x="412" y="336" fill="#7a8399">…</text></g>
+      <rect x="234" y="322" width="20" height="20" rx="3" fill="#2d3142"/>
+      <text x="244" y="336" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">T</text>
+      <path d="M 212 346 L 212 352 L 276 352 L 276 346" fill="none" stroke="#2d3142" stroke-width="1"/>
+      <text class="es" x="244" y="366" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">trío n.º 751 de 1064</text><text class="en" x="244" y="366" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">triplet no. 751 of 1064</text>
+      <text class="es" x="64" y="396" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">SANO</text><text class="en" x="64" y="396" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">HEALTHY</text>
+      <text class="es" x="64" y="416" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">PACIENTE</text><text class="en" x="64" y="416" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">PATIENT</text>
+    
+      
+      <text x="120" y="396" fill="#2d3142" font-size="11" font-family="'Geist Mono', monospace">T T A</text>
+      <text class="es" x="168" y="396" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= ladrillo “leucina”</text><text class="en" x="168" y="396" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= brick “leucine”</text>
+      <text x="120" y="416" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist Mono', monospace">T G A</text>
+      <text class="es" x="168" y="416" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= señal de STOP: la proteína se corta en el ladrillo 751</text><text class="en" x="168" y="416" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= STOP signal: the protein is cut short at brick 751</text>
+      <text class="es" x="64" y="438" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">ClinVar: patogénico para MVA tipo 1 · en la población general: 3 de cada 100.000</text><text class="en" x="64" y="438" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">ClinVar: pathogenic for MVA type 1 · in the general population: 3 in 100,000</text>
+    
+      
+      <rect x="520" y="272" width="440" height="176" rx="6" fill="#ffffff" stroke="rgba(45,49,66,0.14)" stroke-width="1"/>
+      <circle cx="542" cy="294" r="6" fill="#eb6c36"/>
+      <text x="542" y="297" fill="#ffffff" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">2</text>
+      <text class="es" x="556" y="298" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Exón 23 (el último) · se reemplaza un ladrillo</text><text class="en" x="556" y="298" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Exon 23 (the last) · one brick is swapped</text>
+      <g font-family="'Geist Mono', monospace" font-size="12" text-anchor="middle"><text x="556" y="336" fill="#7a8399">…</text><text x="580" y="336" fill="#7a8399">T</text><text x="604" y="336" fill="#7a8399">C</text><text x="628" y="336" fill="#7a8399">T</text><text x="652" y="336" fill="#7a8399">G</text><text x="676" y="336" fill="#2d3142" font-weight="600">A</text><text x="700" y="336" fill="#2d3142" font-weight="600">A</text><text x="748" y="336" fill="#7a8399">G</text><text x="772" y="336" fill="#7a8399">C</text><text x="796" y="336" fill="#7a8399">C</text><text x="820" y="336" fill="#7a8399">A</text><text x="844" y="336" fill="#7a8399">A</text><text x="868" y="336" fill="#7a8399">T</text><text x="892" y="336" fill="#7a8399">…</text></g>
+      <rect x="714" y="322" width="20" height="20" rx="3" fill="#2d3142"/>
+      <text x="724" y="336" fill="#ffffff" font-size="12" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">T</text>
+      <path d="M 668 346 L 668 352 L 732 352 L 732 346" fill="none" stroke="#2d3142" stroke-width="1"/>
+      <text class="es" x="700" y="366" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">trío n.º 1016 de 1064</text><text class="en" x="700" y="366" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">triplet no. 1016 of 1064</text>
+      <text class="es" x="544" y="396" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">SANO</text><text class="en" x="544" y="396" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">HEALTHY</text>
+      <text class="es" x="544" y="416" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">PACIENTE</text><text class="en" x="544" y="416" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">PATIENT</text>
+    
+      
+      <text x="600" y="396" fill="#2d3142" font-size="11" font-family="'Geist Mono', monospace">A A T</text>
+      <text class="es" x="648" y="396" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= ladrillo “asparagina”</text><text class="en" x="648" y="396" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= brick “asparagine”</text>
+      <text x="600" y="416" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist Mono', monospace">A A G</text>
+      <text class="es" x="648" y="416" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= ladrillo “lisina”: la proteína se completa con otra pieza</text><text class="en" x="648" y="416" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">= brick “lysine”: the protein is completed with a different piece</text>
+      <text class="es" x="544" y="438" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Nunca vista en la población · CADD, REVEL y AlphaGenome: alto impacto predicho</text><text class="en" x="544" y="438" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Never seen in the population · CADD, REVEL and AlphaGenome: high predicted impact</text>
+    
+
+      <!-- C. Heterozygosity -->
+      <line x1="40" y1="472" x2="960" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text class="es" x="40" y="492" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">C · HETEROCIGOSIS: QUÉ VEMOS Y QUÉ NO PODEMOS VER</text><text class="en" x="40" y="492" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">C · HETEROZYGOSITY: WHAT WE SEE AND WHAT WE CANNOT</text>
+      <text class="es" x="40" y="520" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">Todos tenemos dos copias de cada gen: una de cada progenitor.</text><text class="en" x="40" y="520" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif">We all carry two copies of every gene: one from each parent.</text>
+      <text class="es" x="40" y="538" fill="#4f5d75" font-size="10" font-family="'Geist', sans-serif">El secuenciador lee cada zona del ADN muchas veces. Cada cambio aparece en la <tspan font-weight="600" fill="#2d3142">mitad</tspan> de las lecturas: 25 de 46 para el cambio 1, 13 de 28 para el cambio 2.</text><text class="en" x="40" y="538" fill="#4f5d75" font-size="10" font-family="'Geist', sans-serif">The sequencer reads every stretch of DNA many times. Each change shows up in <tspan font-weight="600" fill="#2d3142">half</tspan> of the reads: 25 of 46 for change 1, 13 of 28 for change 2.</text>
+      <text class="es" x="40" y="554" fill="#4f5d75" font-size="10" font-family="'Geist', sans-serif">Eso significa que cada cambio está en <tspan font-weight="600" fill="#2d3142">una sola</tspan> de las dos copias: es <tspan font-weight="600" fill="#2d3142">heterocigoto</tspan>. Si estuviera en las dos, aparecería en casi todas las lecturas.</text><text class="en" x="40" y="554" fill="#4f5d75" font-size="10" font-family="'Geist', sans-serif">That means each change sits on <tspan font-weight="600" fill="#2d3142">only one</tspan> of the two copies: it is <tspan font-weight="600" fill="#2d3142">heterozygous</tspan>. If it were on both, it would appear in almost every read.</text>
+      
+      <rect x="40" y="576" width="440" height="160" rx="6" fill="#ffffff" stroke="rgba(45,49,66,0.14)" stroke-width="1"/>
+      <text class="es" x="60" y="600" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">ESCENARIO A · CADA CAMBIO EN UNA COPIA DISTINTA</text><text class="en" x="60" y="600" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">SCENARIO A · EACH CHANGE ON A DIFFERENT COPY</text>
+      <text class="es" x="60" y="636" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copia de un progenitor</text><text class="en" x="60" y="636" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copy from one parent</text>
+      <rect x="220" y="626" width="240" height="14" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <circle cx="390" cy="633" r="5" fill="#eb6c36"/><text x="390" y="636" fill="#ffffff" font-size="7" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+      <text class="es" x="60" y="668" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copia del otro progenitor</text><text class="en" x="60" y="668" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copy from the other parent</text>
+      <rect x="220" y="658" width="240" height="14" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <circle cx="446" cy="665" r="5" fill="#eb6c36"/><text x="446" y="668" fill="#ffffff" font-size="7" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">2</text>
+      <text class="es" x="60" y="700" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">Ninguna copia queda intacta.</text><text class="en" x="60" y="700" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">No intact copy is left.</text>
+      <text class="es" x="60" y="714" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">Es la “heterocigosis compuesta”: el patrón descrito en MVA tipo 1,</text><text class="en" x="60" y="714" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">This is “compound heterozygosity”: the pattern described in MVA type 1,</text>
+      <text class="es" x="60" y="727" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">una enfermedad que necesita que fallen las dos copias.</text><text class="en" x="60" y="727" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">a disease that requires both copies to fail.</text>
+    
+      
+      <rect x="520" y="576" width="440" height="160" rx="6" fill="#ffffff" stroke="rgba(45,49,66,0.14)" stroke-width="1"/>
+      <text class="es" x="540" y="600" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">ESCENARIO B · LOS DOS CAMBIOS EN LA MISMA COPIA</text><text class="en" x="540" y="600" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">SCENARIO B · BOTH CHANGES ON THE SAME COPY</text>
+      <text class="es" x="540" y="636" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copia de un progenitor</text><text class="en" x="540" y="636" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copy from one parent</text>
+      <rect x="700" y="626" width="240" height="14" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <circle cx="870" cy="633" r="5" fill="#eb6c36"/><text x="870" y="636" fill="#ffffff" font-size="7" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text><circle cx="926" cy="633" r="5" fill="#eb6c36"/><text x="926" y="636" fill="#ffffff" font-size="7" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">2</text>
+      <text class="es" x="540" y="668" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copia del otro progenitor</text><text class="en" x="540" y="668" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Copy from the other parent</text>
+      <rect x="700" y="658" width="240" height="14" rx="3" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+      <text class="es" x="820" y="669" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">SIN CAMBIOS</text><text class="en" x="820" y="669" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">NO CHANGES</text>
+      <text class="es" x="540" y="700" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">Una copia sana sigue funcionando.</text><text class="en" x="540" y="700" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif">One healthy copy keeps working.</text>
+      <text class="es" x="540" y="714" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">Con el ADN de una sola persona no se puede distinguir A de B:</text><text class="en" x="540" y="714" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">With one person&#x27;s DNA alone, A cannot be told apart from B:</text>
+      <text class="es" x="540" y="727" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">hace falta el ADN de los padres o una lectura larga que una los dos puntos.</text><text class="en" x="540" y="727" fill="#4f5d75" font-size="9.5" font-family="'Geist', sans-serif">it takes the parents&#x27; DNA or a long read spanning both points.</text>
+    
+
+      <!-- Legend -->
+      <line x1="40" y1="764" x2="960" y2="764" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text class="es" x="40" y="780" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEYENDA</text><text class="en" x="40" y="780" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+      <rect x="40" y="792" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text class="es" x="64" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Exón: parte del gen que se traduce a proteína</text><text class="en" x="64" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Exon: part of the gene translated into protein</text>
+      <line x1="300" y1="798" x2="324" y2="798" stroke="rgba(79,93,117,0.55)" stroke-width="1"/>
+      <text class="es" x="332" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Intrón: texto intermedio que se recorta</text><text class="en" x="332" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Intron: in-between text that is cut out</text>
+      <circle cx="560" cy="798" r="6" fill="#eb6c36"/>
+      <text class="es" x="574" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Cambio encontrado en el paciente</text><text class="en" x="574" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Change found in the patient</text>
+      <rect x="760" y="791" width="14" height="14" rx="3" fill="#2d3142"/>
+      <text class="es" x="782" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Letra cambiada (letras vecinas en gris)</text><text class="en" x="782" y="801" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Changed letter (neighbouring letters in grey)</text>
+    </svg>
+    <p class="colophon"><span class="es">Fuente: VCF del paciente anotado con snpEff (GRCh38.99, transcrito canónico) + MyVariant.info (gnomAD, CADD, REVEL, ClinVar) + AlphaGenome Atlas. Letras vecinas tomadas del genoma de referencia GRCh38 (Ensembl). Anotación de investigación, no un diagnóstico clínico. Figura del Track 1, Paso 3.</span><span class="en">Source: patient VCF annotated with snpEff (GRCh38.99, canonical transcript) + MyVariant.info (gnomAD, CADD, REVEL, ClinVar) + AlphaGenome Atlas. Neighbouring letters from the GRCh38 reference genome (Ensembl). Research annotation, not a clinical diagnosis. Track 1, Step 3 figure.</span></p>
+  </div>
+</body>
+</html>

@@ -1,29 +1,29 @@
-"""Track 1, Paso 2: prefiltrado del VCF del paciente.
+"""Track 1, Step 2: pre-filtering of the patient VCF.
 
-QC intrinseco (FILTER/GQ/DP/GT/AB) + sustraccion de variantes comunes contra
-dbSNP Common. Mismos umbrales que track1_step2_exp01-vcf_prefiltering.ipynb.
+Intrinsic QC (FILTER/GQ/DP/GT/AB) + common-variant subtraction against dbSNP
+Common. Same thresholds as track1_step2_exp01-vcf_prefiltering.ipynb.
 
-Estrategia: tres pasadas SECUENCIALES, sin busquedas aleatorias y con memoria
-acotada (~250 MB), en lugar de una consulta tabix por variante.
+Strategy: three SEQUENTIAL passes, no random lookups, bounded memory
+(~250 MB), instead of one tabix query per variant.
 
-  Pasada 1  VCF paciente -> VCF temporal con los que superan el QC intrinseco.
-            Guarda en memoria la clave (chrom,pos,ref,alt) de cada superviviente.
-  Pasada 2  Recorre dbSNP una vez en binario y descarta del conjunto toda clave
-            que aparezca alli. Lo que queda es el conjunto de variantes raras.
-  Pasada 3  Reescribe el VCF temporal quedandose solo con las raras.
+  Pass 1  patient VCF -> temporary VCF with the intrinsic-QC survivors.
+          Keeps the key (chrom,pos,ref,alt) of every survivor in memory.
+  Pass 2  Scans dbSNP once, in binary mode, and discards from the set every
+          key found there. What remains is the set of rare variants.
+  Pass 3  Rewrites the temporary VCF keeping only the rare variants.
 
-Por que asi y no de otra forma:
-  - Cargar dbSNP entero en un set de tuplas cuesta ~287 bytes por variante,
-    unos 11 GB para sus ~38M de registros: inviable.
-  - Una consulta tabix por variante implica construir ~2,6M de iteradores y
-    parsear cada registro de dbSNP como objeto completo. Aqui dbSNP se lee como
-    bytes crudos partiendo solo los 5 primeros campos, sin tocar su INFO.
-  - Las claves se guardan exactas, no hasheadas: una colision podria borrar la
-    variante causal, y ese riesgo no compensa ahorrar ~100 MB.
+Why this design:
+  - Loading all of dbSNP into a set of tuples costs ~287 bytes per variant,
+    about 11 GB for its ~38M records: not viable.
+  - One tabix query per variant means building ~2.6M iterators and parsing
+    every dbSNP record as a full object. Here dbSNP is read as raw bytes,
+    splitting only the first 5 fields and never touching its INFO.
+  - Keys are stored exact, not hashed: a collision could delete the causal
+    variant, and that risk is not worth saving ~100 MB.
 
-Uso:
+Usage:
     python run_step2_prefilter.py
-    python run_step2_prefilter.py --input ruta.vcf.gz --dbsnp common.vcf.gz -o out.vcf.gz
+    python run_step2_prefilter.py --input path.vcf.gz --dbsnp common.vcf.gz -o out.vcf.gz
 """
 
 import argparse
@@ -48,17 +48,17 @@ def log(msg):
 
 
 def variant_keys(chrom, pos, ref, alts):
-    """Claves exactas de una variante, una por alelo alternativo.
+    """Exact keys of a variant, one per alternate allele.
 
-    Normaliza el prefijo 'chr' porque el VCF del paciente y dbSNP usan contigs
-    numericos, pero conviene no depender de ello.
+    Normalises the 'chr' prefix: the patient VCF and dbSNP both use numeric
+    contigs, but it is better not to depend on that.
     """
     c = chrom[3:] if chrom.startswith("chr") else chrom
     return [f"{c}:{pos}:{ref}:{a}" for a in alts]
 
 
 def pass1_intrinsic_qc(input_vcf, temp_vcf):
-    """QC intrinseco. Devuelve el conjunto de claves supervivientes."""
+    """Intrinsic QC. Returns the set of surviving keys."""
     vcf_in = cyvcf2.VCF(input_vcf)
     vcf_in.add_info_to_header({
         "ID": "AB_FILTER",
@@ -68,8 +68,7 @@ def pass1_intrinsic_qc(input_vcf, temp_vcf):
     })
     vcf_out = cyvcf2.Writer(temp_vcf, vcf_in)
 
-    # Contadores locales: 3,4x mas rapidos que stats['clave'] += 1 en un bucle
-    # de 5M iteraciones.
+    # Local counters: 3.4x faster than stats['key'] += 1 inside a 5M-iteration loop.
     total = dropped_filter = dropped_missing = 0
     dropped_gq = dropped_dp = dropped_gt = dropped_ab = 0
     survivors = set()
@@ -78,9 +77,9 @@ def pass1_intrinsic_qc(input_vcf, temp_vcf):
     for variant in vcf_in:
         total += 1
 
-        # Los filtros se aplican de mas barato a mas caro. variant.format() crea
-        # un array numpy en cada llamada, asi que AD no se pide hasta que GQ, DP
-        # y GT ya han descartado lo que tenian que descartar.
+        # Filters run cheapest-first. variant.format() allocates a numpy
+        # array per call, so AD is not fetched until GQ, DP and GT have
+        # rejected what they can.
         if variant.FILTER is not None and variant.FILTER != "PASS":
             dropped_filter += 1
             continue
@@ -102,7 +101,7 @@ def pass1_intrinsic_qc(input_vcf, temp_vcf):
             continue
 
         gt_type = variant.gt_types[0]
-        if gt_type == 0 or gt_type == 2:  # HOM_REF y UNKNOWN
+        if gt_type == 0 or gt_type == 2:  # HOM_REF and UNKNOWN
             dropped_gt += 1
             continue
 
@@ -133,7 +132,7 @@ def pass1_intrinsic_qc(input_vcf, temp_vcf):
         survivors.update(variant_keys(variant.CHROM, variant.POS, variant.REF, variant.ALT))
 
         if total % 500_000 == 0:
-            log(f"    {total:,} variantes leidas | {len(survivors):,} supervivientes "
+            log(f"    {total:,} variants read | {len(survivors):,} survivors "
                 f"| {time.time() - start:.0f}s")
 
     vcf_in.close()
@@ -152,13 +151,13 @@ def pass1_intrinsic_qc(input_vcf, temp_vcf):
 
 
 def pass2_subtract_common(dbsnp_vcf, survivors):
-    """Recorre dbSNP una vez y elimina del conjunto lo que sea comun.
+    """Scans dbSNP once and removes from the set whatever is common.
 
-    Lee en binario y parte solo los 5 primeros campos: el INFO de dbSNP es
-    enorme y no se necesita para nada.
+    Reads in binary mode and splits only the first 5 fields: dbSNP's INFO
+    is huge and not needed for anything.
     """
     before = len(survivors)
-    discard = survivors.discard  # se resuelve una vez, no 38M de veces
+    discard = survivors.discard  # resolved once, not 38M times
     lines = 0
     start = time.time()
 
@@ -187,22 +186,22 @@ def pass2_subtract_common(dbsnp_vcf, survivors):
                 discard(prefix + alts)
 
             if lines % 5_000_000 == 0:
-                log(f"    {lines:,} lineas de dbSNP | {len(survivors):,} siguen siendo raras "
+                log(f"    {lines:,} dbSNP lines | {len(survivors):,} still rare "
                     f"| {time.time() - start:.0f}s")
 
     return before - len(survivors)
 
 
 def pass3_write_rare(temp_vcf, output_vcf, survivors):
-    """Reescribe el temporal quedandose solo con las variantes raras."""
+    """Rewrites the temporary VCF keeping only the rare variants."""
     vcf_in = cyvcf2.VCF(temp_vcf)
     vcf_out = cyvcf2.Writer(output_vcf, vcf_in)
     kept = 0
 
     for variant in vcf_in:
         keys = variant_keys(variant.CHROM, variant.POS, variant.REF, variant.ALT)
-        # Todas sus claves entraron en el conjunto en la pasada 1. Si falta
-        # alguna es que la pasada 2 la elimino por comun.
+        # All of its keys entered the set in pass 1. If any is missing, pass 2
+        # removed it as common.
         if any(k not in survivors for k in keys):
             continue
         vcf_out.write_record(variant)
@@ -214,31 +213,31 @@ def pass3_write_rare(temp_vcf, output_vcf, survivors):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Paso 2: prefiltrado del VCF (QC + variantes raras)")
+    ap = argparse.ArgumentParser(description="Step 2: VCF pre-filtering (QC + rare variants)")
     ap.add_argument("--input", default=str(REPO_ROOT / "data" / "WGS_EX2312012_HGWCNDSX7.vcf.gz"))
     ap.add_argument("--dbsnp", default=str(REPO_ROOT / "data" / "common_all_20180418.vcf.gz"))
     ap.add_argument("-o", "--output", default=str(REPO_ROOT / "data" / "track1_step2_rare_variants.vcf.gz"))
-    ap.add_argument("--keep-temp", action="store_true", help="no borrar el VCF intermedio")
+    ap.add_argument("--keep-temp", action="store_true", help="do not delete the intermediate VCF")
     args = ap.parse_args()
 
-    for path, label in ((args.input, "VCF del paciente"), (args.dbsnp, "dbSNP Common")):
+    for path, label in ((args.input, "patient VCF"), (args.dbsnp, "dbSNP Common")):
         if not os.path.exists(path):
-            sys.exit(f"[-] No se encontro el {label}: {path}")
+            sys.exit(f"[-] {label} not found: {path}")
 
     temp_vcf = args.output.replace(".vcf.gz", "") + ".intrinsic_qc.tmp.vcf.gz"
     t0 = time.time()
 
-    log(f"[1/3] QC intrinseco sobre {args.input}")
+    log(f"[1/3] Intrinsic QC on {args.input}")
     survivors, stats = pass1_intrinsic_qc(args.input, temp_vcf)
     passed_intrinsic = stats["total"] - sum(v for k, v in stats.items() if k.startswith("dropped"))
-    log(f"      {passed_intrinsic:,} de {stats['total']:,} superan el QC "
+    log(f"      {passed_intrinsic:,} of {stats['total']:,} pass QC "
         f"({time.time() - t0:.0f}s)")
 
-    log(f"[2/3] Sustraccion de comunes contra {args.dbsnp}")
+    log(f"[2/3] Common-variant subtraction against {args.dbsnp}")
     dropped_common = pass2_subtract_common(args.dbsnp, survivors)
-    log(f"      {dropped_common:,} claves descartadas por comunes ({time.time() - t0:.0f}s)")
+    log(f"      {dropped_common:,} keys discarded as common ({time.time() - t0:.0f}s)")
 
-    log(f"[3/3] Escribiendo variantes raras en {args.output}")
+    log(f"[3/3] Writing rare variants to {args.output}")
     kept = pass3_write_rare(temp_vcf, args.output, survivors)
 
     if not args.keep_temp:
@@ -249,20 +248,20 @@ def main():
                 pass
 
     elapsed = time.time() - t0
-    log("\n--- ESTADISTICAS DE FILTRADO ---")
-    log(f"Total de variantes:            {stats['total']:,}")
-    log(f"Descartadas por FILTER:        {stats['dropped_filter']:,}")
-    log(f"Descartadas sin metricas:      {stats['dropped_missing_metrics']:,}")
-    log(f"Descartadas por GQ < {MIN_GQ}:       {stats['dropped_gq']:,}")
-    log(f"Descartadas por DP < {MIN_DP}:       {stats['dropped_dp']:,}")
-    log(f"Descartadas por GT (ref/unk):  {stats['dropped_gt']:,}")
-    log(f"Descartadas por balance alel.: {stats['dropped_ab']:,}")
+    log("\n--- FILTERING STATISTICS ---")
+    log(f"Total variants:                {stats['total']:,}")
+    log(f"Dropped by FILTER:             {stats['dropped_filter']:,}")
+    log(f"Dropped, missing metrics:      {stats['dropped_missing_metrics']:,}")
+    log(f"Dropped by GQ < {MIN_GQ}:           {stats['dropped_gq']:,}")
+    log(f"Dropped by DP < {MIN_DP}:           {stats['dropped_dp']:,}")
+    log(f"Dropped by GT (ref/unk):       {stats['dropped_gt']:,}")
+    log(f"Dropped by allelic balance:    {stats['dropped_ab']:,}")
     log("--------------------------------")
-    log(f"Superan el QC intrinseco:      {passed_intrinsic:,}")
-    log(f"Descartadas por comunes:       {dropped_common:,}")
-    log(f"Variantes raras finales:       {kept:,} "
-        f"({kept / stats['total'] * 100:.1f}% del total)")
-    log(f"\nCompletado en {elapsed / 60:.1f} min -> {args.output}")
+    log(f"Pass intrinsic QC:             {passed_intrinsic:,}")
+    log(f"Dropped as common:             {dropped_common:,}")
+    log(f"Final rare variants:           {kept:,} "
+        f"({kept / stats['total'] * 100:.1f}% of total)")
+    log(f"\nCompleted in {elapsed / 60:.1f} min -> {args.output}")
 
 
 if __name__ == "__main__":
