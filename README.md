@@ -123,25 +123,3 @@ Unlike Track 1, Track 2 uses **qualitative evaluation** rather than automated sc
 * **Compound Heterozygous:** Inheriting two *different* mutated variants in the *same* gene (one broken copy from the mother, and a differently broken copy from the father). Both copies of the gene are broken, but in different ways. The challenge asks us to pair these up in a single row in our CSV if we suspect this is the cause.
 * **FASTQ:** The raw, uninterpreted output straight from the DNA sequencing machine. It consists of billions of tiny puzzle pieces (short strings of DNA letters like A, C, T, G) with no context of where they belong in the human genome.
 * **VCF (Variant Call Format):** How we find the differences. Bioinformaticians use massive computing power to take the billions of FASTQ "puzzle pieces" and match (align) them to a standard human reference blueprint. Once aligned, the computer compares the child's DNA to the reference and throws away everything that is identical, recording *only the differences*. A VCF file lists these differences (e.g., "At chromosome 1, position 100,000, a normal reference has an 'A', but this child has a 'T'").
-
----
-
-## Project Workflow & Guidelines
-
-To maintain organization and reproducibility, please follow this step-by-step workflow when contributing to the project:
-
-### 1. Planning & Research
-* **Procedure (`docs/01-procedure.md`)**: Start here. This file contains the high-level overview of our action plan. As you work, continuously update it with implementation details, further info, and results.
-* **References (`docs/00-references.md`)**: Whenever you encounter interesting papers, literature, or external information, jot them down here to maintain a centralized knowledge base.
-
-### 2. Experimentation & Discovery
-* **Experiments (`notebooks/`)**: Conduct all exploratory and versioned experiments in this directory. Ensure these experiments follow the structured steps outlined in `docs/01-procedure.md`.
-* **Findings (`docs/02-findings.md`)**: Whenever an experiment yields an interesting result, breakthrough, or insight, record it here immediately so the team can track discoveries over time.
-
-### 3. Consolidation & Testing
-* **Finalized Code (`src/`)**: Once a notebook experiment is complete and the optimal approach is identified, extract the best version of the code and move it here as reusable, production-ready modules.
-* **Unit Tests (`tests/`)**: Every time a new piece of logic is added to the `src/` directory, you must write corresponding tests here to ensure code reliability.
-
-### 4. Data & Configuration
-* **Datasets (`data/`)**: All raw, processed, and downloaded data required for the project are stored here.
-* **Agent Rules (`AGENTS.md`)**: Contains the core instructions, rules, and context for the LLM running in opencode. Refer to this for AI-specific operational guidelines.
