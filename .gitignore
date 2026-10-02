@@ -6,6 +6,9 @@ __pycache__/
 # Credentials
 .env
 
+# Experiments
+.sandbox
+
 # C extensions
 *.so
 

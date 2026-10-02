@@ -155,330 +155,163 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 ---
 
-## Track 2: Drug Repurposing Pipeline
+# Track 2: Drug Repurposing Pipeline
 
-**Goal:** Identify and prioritize existing, FDA-approved medications that could plausibly modify, compensate for, or mitigate the biological consequences of the patient's **BUB1B compound-heterozygous variants** identified in Track 1.
+### Step 1: Establish the variant-specific disease mechanism
 
-**Core principle:** The pipeline will not assume that BUB1B itself is directly druggable. Instead, it will establish the molecular consequence of the patient's variants, map the resulting disease mechanism and biological network, identify therapeutically modifiable nodes within that network, and finally search for approved drugs capable of modulating those nodes.
+**Input:** The two BUB1B variants identified in Track 1 (one stop-gain
+and one missense variant).
 
-The final output is a set of **mechanistically justified drug-repurposing hypotheses**, not a claim of clinical efficacy.
+Characterize each allele independently and then assess their combined
+effect. Determine:
 
+-   the exact transcript/protein consequence and genomic context;
+-   the location of each variant relative to known BUBR1 functional
+    domains;
+-   whether the stop-gain is expected to cause nonsense-mediated decay,
+    truncation, or another loss-of-function mechanism;
+-   whether the missense variant affects protein stability,
+    localization, interactions, or function, using clinical/literature
+    evidence, functional assays, domain information, and computational
+    predictions as **separate evidence types**;
+-   whether the two alleles plausibly result in reduced BUBR1 function
+    and how this relates to the known biology of MVA1.
 
-### Step 1: Variant-Specific Mechanism Characterization
+Build the mechanistic chain:
 
-*   **Input:** The BUB1B compound-heterozygous variants identified in Track 1 (one stop-gain and one missense variant).
+`BUB1B variants → BUBR1 molecular defect → spindle assembly checkpoint dysfunction → chromosome-segregation/aneuploidy phenotype`
 
-*   **Action:** Characterize the molecular consequences of each variant independently before investigating potential treatments.
+Review evidence on BUB1B/BubR1, the spindle assembly checkpoint (SAC),
+kinetochore--microtubule attachment, APC/C--CDC20 regulation, chromosome
+segregation, and MVA1.
 
-*   **Questions to answer:**
-    *   What is the exact protein consequence of each variant?
-    *   Where is each variant located within the BUBR1 protein and its functional domains?
-    *   Is the stop-gain variant expected to cause nonsense-mediated decay, protein truncation, or another loss-of-function mechanism?
-    *   Is there experimental or computational evidence that the missense variant reduces BUBR1 function, stability, localization, or protein interactions?
-    *   Does the combination of the two variants provide evidence for partial or complete BUB1B loss-of-function?
-    *   What is known about BUB1B/BubR1 dosage and residual activity in MVA1?
+**Important:** Do not infer the functional effect of the missense
+variant from the variant class alone. The strength and direction of the
+evidence must be explicitly documented.
 
-*   **Literature investigation:**
-    *   BUB1B/BubR1 molecular function.
-    *   Spindle Assembly Checkpoint (SAC).
-    *   Kinetochore-microtubule attachment.
-    *   APC/C-CDC20 regulation.
-    *   Chromosome segregation.
-    *   Mosaic Variegated Aneuploidy.
-    *   Functional studies of pathogenic BUB1B variants.
+------------------------------------------------------------------------
 
-*   **Important:** The functional consequence of the missense variant must not be assumed solely from its variant class. Experimental evidence, ClinVar/literature evidence, domain information, and computational predictions should be considered separately.
+### Step 2: Map the disease mechanism to therapeutic targets
 
-*   **Output:**
+**Input:** The mechanistic hypothesis from Step 1.
 
+Construct an evidence-weighted network linking BUB1B dysfunction to
+potentially modifiable biological processes. Examine:
 
-### Step 2: Disease Mechanism and BUB1B Interaction Network
+-   **Direct/near-direct SAC components:** BUB3, MAD2L1, BUB1, CDC20,
+    MAD1L1, TTK/MPS1;
+-   **APC/C and cell-cycle regulation:** APC/C components, CDC20, and
+    relevant downstream regulators;
+-   **Kinetochore/chromosome segregation:** CENPE, NDC80, SGO1, AURKB,
+    PLK1, ESPL1, and other experimentally supported components;
+-   **aneuploidy/chromosome-instability vulnerabilities:** dependencies
+    or synthetic-lethal/selective-vulnerability mechanisms reported in
+    relevant models.
 
-*   **Input:** Mechanistic hypothesis from Step 1.
+Distinguish clearly between:
 
-*   **Action:** Construct a biological network connecting BUB1B dysfunction to the cellular and clinical consequences of MVA1.
-
-*   **Core question:**
-
-    > If BUB1B/BubR1 function is reduced, what biological processes become abnormal, and which other genes/proteins control those processes?
-
-*   **Investigate the following levels:**
-
-    1. **Direct BUB1B interactors**
-        *   BUB3
-        *   MAD2L1
-        *   CDC20
-        *   BUB1
-        *   Other experimentally supported SAC components.
-
-    2. **Spindle Assembly Checkpoint**
-        *   TTK/MPS1
-        *   MAD1L1
-        *   MAD2L1
-        *   BUB3
-        *   BUB1
-        *   CDC20
-
-    3. **APC/C and cell-cycle regulation**
-        *   APC/C components
-        *   CDC20
-        *   downstream cell-cycle regulators.
-
-    4. **Kinetochore and chromosome segregation**
-        *   CENPE
-        *   NDC80
-        *   SGO1
-        *   AURKB
-        *   PLK1
-        *   ESPL1
-        *   other experimentally supported components.
-
-*   **Evidence requirement:** Distinguish between:
-    *   genes directly interacting with BUB1B;
-    *   genes participating in the same biological pathway;
-    *   genes associated with MVA1;
-    *   genes that are only indirectly related through broader cell-cycle or aneuploidy biology.
-
-*   **Important:** These genes are not being proposed as alternative disease-causing genes. They are being investigated as potential **therapeutic intervention points** downstream or parallel to BUB1B.
-
-*   **Output:**
-
-
-### Step 3: Identification of Therapeutically Modifiable Nodes
-
-*   **Input:** BUB1B disease-mechanism network from Step 2.
-
-*   **Action:** Identify nodes whose pharmacological modulation could plausibly compensate for, suppress, or mitigate the consequences of BUB1B dysfunction.
-
-*   **Three intervention strategies will be investigated independently:**
-
-#### 3.1 Functional Compensation
-
-*   Determine whether another component of the SAC or chromosome-segregation machinery could compensate for reduced BUBR1 activity.
-*   Investigate pathway redundancy and experimentally supported compensatory mechanisms.
-*   Identify targets for which increasing or preserving activity could theoretically restore checkpoint function.
-
-#### 3.2 Downstream Phenotype Correction
-
-*   Identify downstream processes that become abnormal as a consequence of BUB1B deficiency.
-*   Investigate whether pharmacologically modifying these processes could reduce chromosome mis-segregation or restore appropriate cell-cycle control.
-*   APC/C-CDC20 regulation will be investigated as one hypothesis because BUBR1 participates in controlling this pathway, but APC/C inhibition will **not** be assumed to be therapeutically beneficial.
-
-#### 3.3 Phenotype/Vulnerability Modulation
-
-*   Investigate cellular vulnerabilities resulting from chromosome instability or aneuploidy.
-*   Determine whether BUB1B-deficient cells exhibit specific dependencies that can be pharmacologically modulated.
-*   Investigate synthetic-lethal or selective-vulnerability mechanisms reported in relevant models of chromosome instability/aneuploidy.
-*   Clearly distinguish between:
-    *   mechanisms that could potentially **rescue the cellular defect**, and
-    *   mechanisms that would instead **selectively eliminate abnormal cells**.
-
-*   **Prioritization criteria for targets:**
-    *   Biological proximity to BUB1B.
-    *   Strength of experimental evidence.
-    *   Direction of pharmacological intervention.
-    *   Evidence that modulation improves the relevant cellular phenotype.
-    *   Availability of pharmacological compounds.
-    *   Existing human safety/clinical evidence.
-    
-
-*   **Output:**
-
----
-
-### Step 4: Drug–Target Mapping
-
-*   **Input:** Prioritized therapeutic targets from Step 3.
-
-*   **Action:** Identify existing drugs capable of modulating the selected targets.
-
-*   **Databases/resources:**
-    *   DrugBank, where accessible.
-    *   ChEMBL.
-    *   DrugCentral.
-    *   DGIdb.
-    *   Open Targets.
-    *   PubChem.
-    *   ClinicalTrials.gov where relevant.
-    *   PubMed/literature for mechanism and experimental evidence.
-
-*   **For each drug-target association, record:**
-
-    *   Drug name.
-    *   Target gene/protein.
-    *   Mechanism of action.
-    *   Direction of modulation (inhibition/activation/etc.).
-    *   Approved indication.
-    *   Regulatory approval status.
-    *   Evidence supporting the drug-target interaction.
-    *   Evidence connecting the target to the BUB1B disease mechanism.
-    *   Evidence that the proposed direction of modulation could be beneficial.
-
-*   **Critical filtering rule:**
-
-    A drug will not be considered a strong candidate merely because it interacts with a protein in the BUB1B pathway.
-
-    The analysis must establish the complete chain:
-
-    `BUB1B dysfunction → biological consequence → therapeutic target → drug mechanism → expected beneficial effect`
-
-*   **Output:**
-
----
-
-### Step 5: Transcriptomic and Computational Evidence
-
-*   **Input:** Candidate drugs from Step 4.
-
-*   **Action:** Use transcriptomic and computational resources as supporting evidence for the mechanistic hypotheses rather than as the primary source of drug candidates.
-
-*   **CMap/LINCS analysis:**
-    *   Determine whether drug-induced transcriptional signatures are compatible with reversing the molecular state associated with BUB1B dysfunction.
-    *   Where appropriate, compare disease-associated and drug-induced gene-expression signatures.
-    *   Prioritize candidates showing evidence of reversing relevant molecular processes rather than simply producing a generic transcriptional change.
-
-*   **Additional computational analyses may include:**
-    *   protein-protein interaction networks;
-    *   pathway enrichment;
-    *   gene-set enrichment;
-    *   drug-target network analysis;
-    *   similarity between BUB1B-associated signatures and drug-induced signatures.
-
-*   **Important limitation:** Computational similarity alone is insufficient to establish therapeutic efficacy. It will be treated as supporting evidence.
-
-*   **Output:**
-
----
-
-### Step 6: Evidence Integration and Candidate Prioritization
-
-*   **Input:** All candidate drugs and supporting evidence from Steps 4–5.
-
-*   **Action:** Integrate the evidence into a transparent prioritization framework.
-
-*   **Each candidate will be evaluated across the following dimensions:**
-
-    1. **Mechanistic relevance**
-        *   How directly is the target connected to the BUB1B defect?
-
-    2. **Directionality**
-        *   Does the drug produce the desired biological effect?
-        *   Is there evidence supporting this direction?
-
-    3. **Experimental evidence**
-        *   Evidence in BUB1B-deficient models.
-        *   Evidence in SAC/chromosome-segregation models.
-        *   Evidence in aneuploid/CIN models.
-
-    4. **Human evidence**
-        *   Existing clinical use.
-        *   Human pharmacology and safety data.
-
-    5. **Drug availability**
-        *   Existing approved medication.
-        *   Established mechanism of action.
-        *   Known pharmacokinetics.
-
-    6. **Translational feasibility**
-        *   Pediatric experience.
-        *   Route of administration.
-        *   Known serious adverse effects.
-        *   Relevant contraindications.
-
-*   **Evidence hierarchy:**
-
-    Stronger evidence will be given to candidates supported by direct experimental evidence in BUB1B-deficient systems. Evidence from related SAC, aneuploidy, or cancer models will be considered supportive but less direct. Purely computational predictions will receive the lowest level of biological confidence.
-
-*   **Output:**
-
----
-
-### Step 7: Translational Feasibility Assessment
-
-*   **Input:** Shortlisted drug-repurposing candidates.
-
-*   **Action:** Evaluate whether the most biologically plausible candidates could realistically be considered for further investigation.
-
-*   **Criteria:**
-    *   FDA approval status.
-    *   Current approved indications.
-    *   Pediatric use and available pediatric safety data.
-    *   Known serious adverse effects.
-    *   Therapeutic window.
-    *   Route and formulation.
-    *   Pharmacokinetics.
-    *   Drug-drug interactions.
-    *   Contraindications.
-    *   CNS exposure when relevant to the proposed mechanism or clinical phenotype.
-
-*   **Important:** Clinical feasibility must not override the mechanistic analysis. A candidate with strong mechanistic evidence but poor clinical feasibility should be reported as such rather than silently discarded.
-
-*   **Output:**
-
----
-
-### Step 8: Final Candidate Selection and Experimental Validation Plan
-
-*   **Input:** Integrated evidence from Steps 1–7.
-
-*   **Action:** Select approximately 1–3 **prioritized drug-repurposing hypotheses** for detailed presentation.
-
-*   **For each final candidate, provide:**
-
-    1. The BUB1B defect being targeted.
-    2. The affected biological process.
-    3. The therapeutic target.
-    4. The drug's mechanism of action.
-    5. Why the direction of modulation is expected to be beneficial.
-    6. Evidence supporting the hypothesis.
-    7. Main uncertainties and limitations.
-    8. Existing human/pediatric safety information.
-    9. A proposed experiment to test the hypothesis.
-
-*   **Proposed validation experiment:**
-
-    Where experimentally feasible, compare BUB1B-mutant and control cellular systems under vehicle and candidate-drug treatment.
-
-    Potential readouts include:
-    *   mitotic progression;
-    *   chromosome segregation errors;
-    *   micronucleus formation;
-    *   aneuploidy;
-    *   cell viability;
-    *   SAC activation;
-    *   relevant molecular biomarkers.
-
-*   The experiment should distinguish between:
-    *   **phenotypic rescue** — improvement of the cellular defect; and
-    *   **selective toxicity** — preferential elimination of abnormal cells.
-
-*   **Important:** The final candidates are presented as hypotheses for experimental investigation, not as recommended treatments for the patient.
-
-*   **Output:**
-
----
-
-### Step 9: Deliverables Generation
-
-*   **Action:** Prepare the final Track 2 submission.
-
-*   **Deliverables:**
-    *   Detailed mechanistic rationalization report.
-    *   Final candidate-drug table.
-    *   Complete reproducible code for target and drug identification.
-    *   Evidence/provenance table linking every important claim to its source.
-    *   Proposed experimental validation plan.
-    *   3-minute pitch video script.
-
-*   **Final narrative structure:**
-
-    `Patient variants`
-    → `BUB1B molecular defect`
-    → `SAC dysfunction`
-    → `cellular consequence`
-    → `therapeutically modifiable node`
-    → `existing drug`
-    → `evidence`
-    → `validation experiment`
-
-*   **Final output:**
+1.  direct BUB1B interactors;
+2.  members of the same biological pathway;
+3.  genes associated with MVA1;
+4.  indirect relationships through broader cell-cycle, aneuploidy, or
+    chromosome-instability biology.
+
+For each potential target, define the **desired direction of
+modulation** and the rationale. Consider three therapeutic concepts:
+
+-   **functional compensation** --- preserve or enhance a process that
+    could compensate for reduced BUBR1 activity;
+-   **downstream phenotype correction** --- reduce chromosome
+    mis-segregation or restore cell-cycle/checkpoint control;
+-   **phenotype/vulnerability modulation** --- exploit a
+    disease-associated dependency.
+
+Do not assume that inhibiting a pathway component is beneficial simply
+because BUB1B regulates it. In particular, APC/C--CDC20 inhibition
+should be treated as a testable hypothesis, not an established
+therapeutic strategy.
+
+**Output:** A short list of prioritized therapeutic nodes, each linked
+to a specific mechanistic rationale and evidence level.
+
+------------------------------------------------------------------------
+
+### Step 3: Map targets to approved drugs and integrate computational evidence
+
+**Input:** Prioritized therapeutic targets from Step 2.
+
+Identify existing approved medications capable of modulating the
+selected targets using resources such as **ChEMBL, DrugCentral, DGIdb,
+Open Targets, PubChem, DrugBank (where accessible), ClinicalTrials.gov,
+and the primary literature**.
+
+For every drug--target hypothesis, record:
+
+-   drug and target;
+-   mechanism and direction of modulation;
+-   approved indication and regulatory status;
+-   evidence for the drug--target interaction;
+-   evidence connecting the target to the BUB1B/MVA1 mechanism;
+-   evidence that the proposed direction of modulation could produce a
+    beneficial cellular effect;
+-   relevant human safety/pharmacology information.
+
+Apply the key filtering rule:
+
+`BUB1B dysfunction → biological consequence → therapeutic target → drug mechanism → expected beneficial effect`
+
+A drug should **not** be prioritized merely because it interacts with a
+protein somewhere in the BUB1B pathway.
+
+Use transcriptomic and network-based analyses as **supporting
+evidence**, not as the primary basis for candidate selection. Where
+suitable, use CMap/LINCS to test whether drug-induced expression
+signatures are compatible with reversing disease-relevant molecular
+states, alongside pathway enrichment, gene-set analysis, PPI networks,
+and drug--target network analysis.
+
+Computational similarity alone is insufficient to establish therapeutic
+efficacy; CMap/LINCS results should be treated as hypothesis-supporting
+evidence because transcriptomic signatures can be context-, dose-, and
+cell-type-dependent.
+
+**Output:** A candidate-drug table with a transparent evidence trail
+from BUB1B dysfunction to the proposed drug effect.
+
+------------------------------------------------------------------------
+
+### Step 4: Integrate evidence, assess feasibility, and define validation
+
+Integrate the candidates using a transparent, non-clinical
+prioritization framework covering:
+
+-   **mechanistic relevance** --- proximity of the target to the BUB1B
+    defect;
+-   **directionality** --- evidence that the drug acts in the desired
+    direction;
+-   **experimental evidence** --- BUB1B-deficient,
+    SAC/chromosome-segregation, aneuploidy, or CIN models;
+-   **human evidence** --- clinical use, pharmacology, and safety;
+-   **drug feasibility** --- established mechanism, pharmacokinetics,
+    formulation, route, interactions, contraindications, and pediatric
+    evidence where available.
+
+Evidence from direct BUB1B-deficient models should be distinguished from
+evidence in related SAC/aneuploidy/cancer models and from purely
+computational predictions.
+
+Select approximately **1--3 final hypotheses**. For each, report:
+
+1.  BUB1B defect and affected process;
+2.  therapeutic target and drug mechanism;
+3.  rationale for the proposed direction of modulation;
+4.  supporting evidence and its limitations;
+5.  human/pediatric safety and translational considerations;
+6.  a proposed experiment.
+
+Where feasible, compare **BUB1B-mutant and control cellular systems**
+under vehicle and candidate-drug treatment. Potential readouts include
+mitotic progression, chromosome-segregation errors, micronuclei,
+aneuploidy, cell viability, SAC activation, and relevant molecular
+biomarkers. Explicitly distinguish **phenotypic rescue** from
+**selective toxicity**.
