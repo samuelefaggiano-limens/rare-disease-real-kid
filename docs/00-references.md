@@ -144,3 +144,99 @@ Source: [BubR1 controls heart development by promoting expression of cardiogenes
 1. Proteostasis failure and mitochondrial dysfunction in chromosomal-instability microcephaly: https://pubmed.ncbi.nlm.nih.gov/41820377/
 2. P53-independent pathogenic mechanisms in BubR1 microcephaly: https://pubmed.ncbi.nlm.nih.gov/37900274/
 3. BubR1 controls heart development via cardiogenesis regulators (Wnt signaling): https://pubmed.ncbi.nlm.nih.gov/40055864/
+
+
+## 4. BubR1 Dosage: the Evidence That a Repurposing Target Exists at All
+
+The three sources above describe what goes wrong *downstream* of a broken BUB1B. A separate body of work asks a more useful question for Track 2: **does the amount of BubR1 protein itself matter, and can anything change it?** If BubR1 levels were irrelevant, or unreachable by any drug, the only remaining options would be damage control. They are not.
+
+### A. Less BubR1 causes the disease phenotype; more BubR1 protects against it
+
+Mice engineered to make only a small fraction of the normal BubR1 develop progressive aneuploidy together with short lifespan, dwarfism, muscle wasting and cataracts — a premature-ageing picture ([Baker et al. 2004, *Nat Genet*](https://pubmed.ncbi.nlm.nih.gov/15208629/)). The converse experiment is the more informative one: mice engineered to make *extra* BubR1 were protected against aneuploidy and cancer, kept better muscle fibres, performed better on treadmill tests, and lived longer ([Baker et al. 2013, *Nat Cell Biol*](https://pubmed.ncbi.nlm.nih.gov/23242215/)).
+
+**Why this matters for Track 2:** it establishes the direction of travel. BubR1 behaves as a dosage-sensitive protein across its whole range, not as a switch that is simply on or off. Raising it is beneficial in the models where it has been tested. That makes "increase the BubR1 that remains" a coherent therapeutic goal rather than a wish.
+
+### B. There is a known molecular handle on BubR1 levels, and it is reachable by a supplement
+
+BubR1 abundance declines with age because NAD+ declines. The link is the enzyme SIRT2, which keeps BubR1 deacetylated at a specific residue (lysine 668) and thereby protects it from degradation; the acetyltransferase CBP pushes the other way. Treating mice with the NAD+ precursor NMN raised BubR1 *in vivo*, and overexpressing SIRT2 extended the lifespan of the BubR1-deficient mice from source A ([North et al. 2014, *EMBO J*](https://pubmed.ncbi.nlm.nih.gov/24825348/)).
+
+**Why this matters for Track 2:** this is the only route we found that acts on the *quantity* of BubR1 rather than on its consequences. It also has an unusual property for a rare-disease target — the intervention is a nutrient precursor with existing human exposure, not a compound that would have to be developed from scratch.
+
+**Caveat recorded deliberately:** BUB1B is also a dependency of rhabdomyosarcoma cells, which this child has had ([Wan et al. 2012, *Cancer Res*](https://pubmed.ncbi.nlm.nih.gov/23002205/)). Raising BubR1 systemically in a cancer-predisposition background is therefore a mechanistically unresolved question, not an obviously good idea, and is written up as such.
+
+### C. Prior human exposure to NAD+ precursors, including in children
+
+Nicotinamide riboside was given to 24 patients with ataxia-telangiectasia — another genome-instability syndrome with cancer predisposition — 17 of them under 18 years old. It was tolerated, with improved ataxia scores and immunoglobulin levels ([Veenhuis et al. 2021, *Mov Disord*](https://pubmed.ncbi.nlm.nih.gov/34515380/)). Separately, niacin corrected systemic NAD+ deficiency and improved muscle performance in adult-onset mitochondrial myopathy ([Pirinen et al. 2020, *Cell Metab*](https://pubmed.ncbi.nlm.nih.gov/32386566/)).
+
+**Why this matters for Track 2:** it is the difference between a hypothesis that could be tested in people one day and one that could not. Note what it is *not*: neither study is in MVA, and neither tested the BubR1 mechanism.
+
+
+## 5. The Senescence Arm: a Second, Independent Consequence of Low BubR1
+
+Low BubR1 does not only cause missegregated chromosomes. The same mice accumulate p16-positive **senescent cells** — cells that have stopped dividing but stay alive and secrete inflammatory signals. When those senescent cells were genetically removed, the onset of muscle loss, fat loss and cataracts was delayed, and removing them late in life still slowed progression of disorders that had already started ([Baker et al. 2011, *Nature*](https://pubmed.ncbi.nlm.nih.gov/22048312/)).
+
+This is an unusually direct piece of evidence: the experiment was done *in the BubR1 model itself*, and the phenotype it rescued (muscle wasting) is one this child presents.
+
+Compounds that kill senescent cells selectively — "senolytics" — were then derived by mapping the pro-survival network those cells depend on ([Zhu et al. 2015, *Aging Cell*](https://pubmed.ncbi.nlm.nih.gov/25754370/)), and have since been given to humans in early-phase trials ([Hickson et al. 2019, *EBioMedicine*](https://pubmed.ncbi.nlm.nih.gov/31542391/)). A trial in adult survivors of childhood cancer is ongoing ([NCT04733534](https://clinicaltrials.gov/study/NCT04733534)).
+
+**The gap to be honest about:** the rescue was achieved by *genetic* clearance in mice, not by a drug, and not in MVA. And senescence is also a tumour-suppressive program — removing senescent cells in a cancer-predisposition background cuts both ways.
+
+
+## 6. Cancer Predisposition and Treatment Sensitivity in MVA
+
+*BUB1B* was the gene originally identified in MVA families, including two with embryonal rhabdomyosarcoma ([Hanks et al. 2004, *Nat Genet*](https://pubmed.ncbi.nlm.nih.gov/15475955/)) — the same tumour type that triggered investigation in this child.
+
+Two further sources matter for how the mechanism interacts with cancer treatment rather than with repurposing:
+
+- Genomic-instability disorders as a group, MVA included, are recognised to have altered sensitivity to radiotherapy and chemotherapy, which shapes surveillance and treatment choices ([Nakano et al. 2024, *Clin Cancer Res*](https://pubmed.ncbi.nlm.nih.gov/39264246/)).
+- A published MVA case with rhabdomyosarcoma was managed with **reduced-intensity chemotherapy** ([Nishitani-Isa et al. 2019, *Pediatr Int*](https://pubmed.ncbi.nlm.nih.gov/31184400/)).
+
+Mechanistically this is not a coincidence. Vinca alkaloids and taxanes kill by triggering a mitotic arrest that *depends on a working spindle assembly checkpoint*; where the checkpoint is attenuated, cells slip through mitosis instead of arresting, and resistance has been reported in cancer models. In BUB1B-related MVA the checkpoint is precisely what is broken.
+
+**Scope note:** this is recorded as a research question the mechanism itself raises, not as a clinical recommendation. No comparative data exist in constitutional biallelic *BUB1B* deficiency, and treatment decisions belong to the treating team.
+
+
+## 7. Routes Examined and Set Aside
+
+Recorded so the reasoning is not repeated. See `docs/02-findings.md` (Track 2, Step 3) for the full map.
+
+| Route | Why it was set aside | Source |
+|---|---|---|
+| Blocking P53 to stop cell death | Already tested: deleting P53 together with BubR1 did **not** rescue microcephaly. A second, P53-independent death pathway keeps operating. A published negative result. | [PMID 37900274](https://pubmed.ncbi.nlm.nih.gov/37900274/) |
+| Growth hormone for short stature | Reported ineffective in a CEP57-related MVA case despite high IGF-1. The defect is mitotic, not endocrine. | [PMID 35434947](https://pubmed.ncbi.nlm.nih.gov/35434947/) |
+| KIF18A inhibition (CIN-selective) | Requires a *competent* checkpoint to kill; SAC-deficient cells survive it. MPS1 inhibition can restore the dependency, but neither agent is approved. | [PMID 42647139](https://pubmed.ncbi.nlm.nih.gov/42647139/) |
+| Targeting the aneuploid state (proteasome, metabolic) | Approved drugs exist, but this eliminates aneuploid cells rather than correcting the defect — selective toxicity, not rescue, in a body where aneuploidy is constitutional. | [PMID 21315436](https://pubmed.ncbi.nlm.nih.gov/21315436/) |
+| Wnt inhibition; neural stem cell protection | Sound evidence, but for congenital heart defects and microcephaly respectively — **neither is reported for this child** in the clinical document. | §Track 2 above |
+
+
+## Sources at a Glance (Track 2, Steps 3-4)
+
+4. BubR1 insufficiency causes early ageing phenotypes (Baker 2004): https://pubmed.ncbi.nlm.nih.gov/15208629/
+5. Increased BubR1 protects against aneuploidy and cancer (Baker 2013): https://pubmed.ncbi.nlm.nih.gov/23242215/
+6. SIRT2 induces BubR1 to increase lifespan (North 2014): https://pubmed.ncbi.nlm.nih.gov/24825348/
+7. Nicotinamide riboside in ataxia-telangiectasia, incl. children (Veenhuis 2021): https://pubmed.ncbi.nlm.nih.gov/34515380/
+8. Niacin, NAD+ deficiency and muscle performance (Pirinen 2020): https://pubmed.ncbi.nlm.nih.gov/32386566/
+9. Clearance of p16-positive senescent cells in the BubR1 model (Baker 2011): https://pubmed.ncbi.nlm.nih.gov/22048312/
+10. Senolytic drugs from the senescent-cell survival network (Zhu 2015): https://pubmed.ncbi.nlm.nih.gov/25754370/
+11. First-in-human senolytic trial (Hickson 2019): https://pubmed.ncbi.nlm.nih.gov/31542391/
+12. SEN-SURVIVORS trial in childhood-cancer survivors: https://clinicaltrials.gov/study/NCT04733534
+13. Biallelic BUB1B mutations, MVA and cancer predisposition (Hanks 2004): https://pubmed.ncbi.nlm.nih.gov/15475955/
+14. FoxM1/Bub1b required for rhabdomyosarcoma growth (Wan 2012): https://pubmed.ncbi.nlm.nih.gov/23002205/
+15. Reduced-intensity chemotherapy in MVA rhabdomyosarcoma (Nishitani-Isa 2019): https://pubmed.ncbi.nlm.nih.gov/31184400/
+16. Cancer surveillance in genomic instability disorders (Nakano 2024): https://pubmed.ncbi.nlm.nih.gov/39264246/
+17. Aneuploidy-selective antiproliferation compounds (Tang 2011): https://pubmed.ncbi.nlm.nih.gov/21315436/
+18. SAC competency determines KIF18A sensitivity (2026): https://pubmed.ncbi.nlm.nih.gov/42647139/
+19. CEP57 MVA case, growth hormone ineffective (Feng 2022): https://pubmed.ncbi.nlm.nih.gov/35434947/
+20. BubR1 pseudokinase domain recruits PP2A-B56 (2020): https://pubmed.ncbi.nlm.nih.gov/33207204/
+
+### Databases queried (Step 3)
+
+| Resource | Role | Endpoint |
+|---|---|---|
+| **ChEMBL** | Primary source of curated drug mechanisms of action and approval phase | `https://www.ebi.ac.uk/chembl/api/data` |
+| **DGIdb** | Cross-check of approved drug-gene interactions and their direction | `https://dgidb.org/api/graphql` |
+| **STRING** | Network distance from each target to BUB1B (supporting evidence only) | `https://string-db.org/api/json` |
+| **UniProt** | Gene symbol to reviewed human accession | `https://rest.uniprot.org/uniprotkb/search` |
+| **Europe PMC** | Citation verification for every PMID recorded above | `https://www.ebi.ac.uk/europepmc/webservices/rest` |
+
+Open Targets was evaluated and **not used**: its GraphQL schema no longer exposes `knownDrugs` on `Target`, and the replacement field was unstable at the time of writing. ChEMBL covers the same curated mechanism data directly.

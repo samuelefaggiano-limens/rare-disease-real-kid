@@ -315,3 +315,37 @@ mitotic progression, chromosome-segregation errors, micronuclei,
 aneuploidy, cell viability, SAC activation, and relevant molecular
 biomarkers. Explicitly distinguish **phenotypic rescue** from
 **selective toxicity**.
+
+------------------------------------------------------------------------
+
+### Track 2 Experiments
+
+Track 2 is implemented as scripts in `notebooks/utils/` rather than as
+`.ipynb` experiments. The pipeline is a deterministic sequence of public
+database queries with no exploratory or patient-data component, so the
+notebook format adds no reproducibility benefit here; the scripts are
+runnable end-to-end and their outputs are committed. Steps 1 and 2 were
+produced as a literature analysis with no code.
+
+| Step | Implementation | Description | Results |
+| :--- | :--- | :--- | :--- |
+| 1 · Mechanism | *(literature analysis)* | Characterises each allele and the combined effect: L751* stop-gain expected to undergo NMD (null allele), N1016K missense in the C-terminal pseudokinase domain required for PP2A-B56 recruitment. | Mechanistic chain established and recorded in `docs/02-findings.md`. |
+| 2 · Targets | *(literature analysis)* | Evidence-weighted network from BUB1B dysfunction to modifiable processes, across SAC components, APC/C regulation, kinetochore biology and aneuploidy vulnerabilities. | Five prioritised therapeutic nodes. **Four were subsequently revised or discarded in Step 3** (see below). |
+| 3 · Drugs | `notebooks/utils/track2_step3_drug_mapping.py` + `track2_target_panel.tsv` | Maps a 35-protein panel to approved drugs via ChEMBL (primary), DGIdb (cross-check) and STRING (network distance). Records direction concordance against the desired modulation. | **All 18 proteins at network distance 1 from BUB1B have zero approved concordant drugs**; all 25 drugs found act at distance 2-3. Outputs in `output/track2/`. |
+| 3 · Figure | `docs/figures/build_track2_mechanisms_figure.py` | Documents all 12 routes with the reason each is retained or discarded, in five categories. EN/ES, same build-script convention as the Track 1 figure. | `docs/figures/track2_mechanisms_explained.html` + PNG. |
+| 4 · Prioritisation | `notebooks/utils/track2_step4_prioritize.py` + `track2_step4_candidates.tsv` | Transparent weighted scoring on the five axes above, with mechanistic relevance and directionality dominant so drug availability alone cannot carry a candidate. | Two prioritised hypotheses: NAD+/SIRT2 BubR1 stabilisation (0.817) and senescent-cell clearance (0.667). Output in `output/track2/`. |
+| 5 · Deliverables | — | Report, AI-usage disclosure, pitch video. | **Not started.** |
+
+**Reproducing Track 2:**
+
+```bash
+python notebooks/utils/track2_step3_drug_mapping.py   # ~5 min, queries ChEMBL/DGIdb/STRING
+python notebooks/utils/track2_step4_prioritize.py     # instant, offline
+python docs/figures/build_track2_mechanisms_figure.py # regenerates the figure
+```
+
+Step 3 depends on external APIs. UniProt accessions are cached in
+`notebooks/utils/track2_uniprot_accessions.json` because the service
+throttles bursts and returned HTTP 500 mid-run; ChEMBL and DGIdb are
+queried live with exponential backoff. No patient data is involved at any
+point in Track 2.

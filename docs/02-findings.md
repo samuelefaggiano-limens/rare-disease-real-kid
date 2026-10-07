@@ -166,3 +166,81 @@ The genetic defect in MVA throws a major communication system—the Wnt pathway�
 - **Proteasome / APC/C (e.g., CDC20/FZR1)**: *Rationale*: Exploits the massive downstream proteotoxic stress of aneuploid cells, driving them to apoptosis while sparing normal cells. *Evidence*: Medium/High (Well-characterized dependency in highly aneuploid cells).
 - **Wnt Signaling Pathway**: *Rationale*: Reverses hyperactive signaling responsible for failed cardiomyocyte development in BubR1 deficiency. *Evidence*: Medium (Validated in in-vivo BubR1-deficient heart models).
 - **Mitochondrial ROS / Proteostasis**: *Rationale*: Protects vulnerable neural stem cells from energy-depletion-induced death, addressing microcephaly. *Evidence*: Medium (Proven rescue of NSC pools in vivo).
+
+> **Revised in Step 3.** Four of these five nodes did not survive the mapping to approved drugs. TRIP13, MPS1/KIF18A and APC/C-CDC20 have **no approved drug in any direction**; Wnt and neural-stem-cell protection target phenotypes (congenital heart defect, microcephaly) that **this child does not present** in the clinical document. See below.
+
+## Track 2: Map targets to approved drugs (Step 3)
+**Source:** `notebooks/utils/track2_step3_drug_mapping.py`, `notebooks/utils/track2_target_panel.tsv`
+
+A panel of **35 candidate proteins** was assembled from the Step 2 analysis, each annotated with its relationship to BUB1B (direct interactor / same pathway / MVA gene / indirect CIN biology), the **desired direction of modulation**, and the therapeutic concept it serves. The panel lives in its own TSV rather than in code, so the reasoning for each inclusion can be reviewed and revised without touching the pipeline.
+
+Each gene was resolved to its reviewed human UniProt accession, then mapped to approved drugs through **ChEMBL** (primary; curated mechanisms of action), cross-checked against **DGIdb**, with **STRING** used for network distance to BUB1B as supporting evidence only.
+
+*   **Implementation note that changes the result:** ChEMBL must be queried through *every* target containing the protein, not just `SINGLE PROTEIN` entries. Bortezomib is annotated against the target "26S proteasome", not against PSMB5; querying single proteins alone would have returned zero drugs for that node. Salts and hydrates are collapsed to their parent molecule (`IXAZOMIB CITRATE` → `IXAZOMIB`) so approval phase is not under-reported.
+
+*   **A mis-annotation worth recording:** ChEMBL annotates the rapalogs (sirolimus, everolimus) against **FKBP12/FKBP1A**, the protein they bind, not against MTOR. A panel listing only MTOR silently misses them. FKBP1A was added to the panel for this reason; the counts below predate that addition and are unchanged by it for the prioritised hypotheses.
+
+### The central finding: proximity and druggability are inversely related
+
+| Relationship to BUB1B | Genes | Genes with an approved concordant drug |
+|---|---|---|
+| Direct interactor | 10 | **0** |
+| Same pathway | 7 | **0** |
+| MVA gene (BUB1B, TRIP13) | 2 | **0** |
+| Indirect CIN biology | 15 | 7 |
+
+All **18 proteins at STRING distance 1 from BUB1B** — CDC20, TRIP13, TTK, AURKB, PLK1, BUB1, BUB3, MAD2L1, CENPE, NDC80, SGO1, ESPL1, UBE2C, ANAPC2, MAD1L1, KIF18A, PPP2CA, FOXM1 — have **zero** approved direction-concordant drugs. Every one of the 25 approved drugs identified acts on a protein at **distance 2-3**: PSMB5, DHODH, POLE, BCL2, SRC, ABL1, MTOR.
+
+*   **Why this matters:** the mitotic machinery is essentially undrugged in the approved pharmacopoeia, because inhibiting it is only ever desirable in oncology, and there the development path has mostly failed. The practical consequence for Track 2 is that **no approved drug acts on the defect itself**. Every available candidate acts on a consequence. This reframes the task: not "which drug fixes the checkpoint" — none does — but "which consequence is worth addressing, and is the evidence for doing so honest".
+
+*   **Direction matters as much as availability.** PLK1 and CENPE have inhibitors in clinical development and appear prominently in the network, but the direction is inverted: PLK1 phosphorylates BubR1's KARD domain to recruit PP2A-B56, which is precisely the function the N1016K pseudokinase variant already compromises. Inhibiting PLK1 would remove what little recruitment remains. Availability without directionality is not a candidate.
+
+### The routes examined, and why each was retained or discarded
+
+![Track 2 drug mechanisms: retained and discarded routes](figures/track2_mechanisms_explained_en.png)
+
+Interactive version with an English/Español switch: [`figures/track2_mechanisms_explained.html`](figures/track2_mechanisms_explained.html) (regenerate with `python docs/figures/build_track2_mechanisms_figure.py`). It also covers the healthy SAC mechanism and what the two patient variants break, for readers who are not specialists.
+
+Discard reasons fall into five distinct categories, which is itself the useful output — they are not all "it doesn't work":
+
+| Reason | Routes |
+|---|---|
+| **No approved drug exists** | APC/C-CDC20, TRIP13 |
+| **Wrong direction** | PLK1 / CENPE inhibition; spindle poisons |
+| **Phenotype does not match this child** | Wnt inhibition (heart), neural stem cell protection (microcephaly) |
+| **Published negative result** | P53 blockade; growth hormone |
+| **Toxicity, not rescue** | MPS1+KIF18A; targeting the aneuploid state |
+
+*   **The phenotype-mismatch discards are the most consequential revision to Step 2.** The clinical document for this child lists rhabdomyosarcoma, nephrocalcinosis, short stature, failure to thrive, skeletal muscle atrophy, premature birth, small for gestational age, and parental recurrent miscarriage. It lists **no microcephaly and no congenital heart defect**. The two mechanisms the earlier literature review proposed (`00-references.md` Track 2 §2A and §2C) are well-evidenced but target exactly those two absent features. Retaining them would optimise for a phenotype this child does not have.
+
+## Track 2: Integrate evidence and prioritise (Step 4)
+**Source:** `notebooks/utils/track2_step4_prioritize.py`, `notebooks/utils/track2_step4_candidates.tsv`
+
+Each surviving hypothesis is scored 0-3 on the five axes the procedure specifies, combined as a transparent weighted sum. The weights encode the procedure's own rule — a drug is not prioritised merely because it interacts with something in the BUB1B pathway — so mechanistic relevance (0.35) and directionality (0.20) dominate, and tractability alone (0.10) cannot carry a candidate. Axes that do not apply are dropped from the denominator rather than scored zero.
+
+No model was trained: there is no labelled outcome data for MVA repurposing, so a fitted model would be unvalidatable. The weights are stated explicitly so a reader can disagree with them and recompute.
+
+| Rank | Hypothesis | Concept | Score | Mech. | Dir. | Exp. | Human | Tract. |
+|---|---|---|---|---|---|---|---|---|
+| 1 | **NAD+ precursors → SIRT2 → BubR1 stabilisation** | functional compensation | **0.817** | 3 | 2 | 2 | 2 | 3 |
+| 2 | **Senescent-cell clearance** | phenotype modulation | **0.667** | 2 | 2 | 2 | 2 | 2 |
+| 3 | Targeting the aneuploid state | vulnerability | 0.583 | 1 | 2 | 2 | 2 | 3 |
+| 4 | APC/C-CDC20 braking | downstream correction | 0.483 | 3 | 1 | 1 | 0 | 0 |
+| — | Spindle-poison interaction | *research question, not a candidate* | 0.854 | 3 | n/a | 2 | 2 | 3 |
+
+*   **H1 (NAD+/SIRT2) is the only hypothesis that acts on the cause.** It raises the amount of BubR1 rather than managing a downstream effect. The mechanistic argument depends on one inference worth stating plainly: K668, the residue SIRT2 acts on, lies outside both patient variants, and the stop-gain allele is expected to be destroyed by NMD — so the protein from the missense allele is the plausible substrate. That is a domain-position argument, not an experimental result for N1016K, and the proposed experiment tests it directly.
+
+*   **H1 also carries the sharpest internal tension in the whole analysis.** BUB1B is a dependency of rhabdomyosarcoma cells (PMID 23002205), and this child has had a rhabdomyosarcoma. Raising BubR1 systemically in a cancer-predisposition background is mechanistically unresolved — the same intervention that might stabilise mitosis in healthy tissue could support tumour-cell proliferation. The proposed experiment includes matched RMS lines specifically to separate these two effects. This is recorded as an open contradiction rather than a caveat, because it could invalidate the hypothesis.
+
+*   **H2 (senescence) has the most direct model-to-phenotype match in the analysis.** Genetic clearance of senescent cells in the BubR1-hypomorphic mouse delayed *sarcopenia* — and muscle atrophy with failure to thrive is documented repeatedly in this child's record. But the evidence is genetic clearance in mice, not a drug, and not in MVA; and senescence is tumour-suppressive, which cuts against use in a cancer-predisposition background.
+
+*   **H5 is the worked example of why tractability cannot carry a hypothesis.** It has the best drug availability of any route (proteasome and DHODH inhibitors, all approved) and the lowest mechanistic relevance (score 1). It corrects nothing — it eliminates aneuploid cells, in a body where aneuploidy is constitutional. Ranked third, and documented as a research direction rather than a prioritised candidate.
+
+*   **H4 is retained as a documented negative result.** Mechanistically it is the most direct compensation that exists, and Step 2 ranked it highly, but the ChEMBL and DGIdb search returned no approved drug against CDC20, ANAPC2 or UBE2C in any direction. Recording the druggability gap is more useful than silently dropping the node.
+
+*   **H3 scores highest but is excluded from the ranking by design.** It is not a repurposing proposal: it is a question about how a weakened checkpoint interacts with spindle poisons already standard in rhabdomyosarcoma treatment. It is flagged separately so the number is not misread as a recommendation; any clinical interpretation belongs to the treating team.
+
+### Reproducibility notes
+*   **UniProt accessions are cached on disk** (`notebooks/utils/track2_uniprot_accessions.json`). The service throttles bursts and returned HTTP 500 partway through a run; the cache makes re-runs stable and the mapping reproducible offline.
+*   **FKBP1A is in the panel but not yet in the cache.** It was added after the last successful full run, during an EBI/UniProt outage. The next successful Step 3 run resolves it; the figures above are unaffected, since no FKBP1A-dependent hypothesis is prioritised.
+*   No patient data is used anywhere in Track 2. All inputs are public database queries and the gene identity from Track 1.
