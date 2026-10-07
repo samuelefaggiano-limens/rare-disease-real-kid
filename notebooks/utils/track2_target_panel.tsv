@@ -1,0 +1,36 @@
+gene	relationship_class	desired_direction	therapeutic_concept	child_phenotype	rationale
+BUB1B	3_mva_gene	increase	functional_compensation	all	The disease gene itself. MVA1 is dosage-sensitive: BubR1 hypomorphic mice are progeroid and aneuploid, BubR1 overexpression protects against aneuploidy, cancer and muscle/renal ageing. Raising residual BubR1 from the missense allele is the most direct compensation.
+SIRT2	1_direct_interactor	increase	functional_compensation	all	Deacetylates BubR1 K668 and prevents its APC/C-mediated degradation; NAD+ repletion (NMN) raises BubR1 in vivo. K668 lies outside both patient variants (L751*, N1016K), so the route applies to the missense protein.
+CREBBP	1_direct_interactor	decrease	functional_compensation	all	Acetylates BubR1 K668, the modification that SIRT2 removes; lowering it should stabilise BubR1. No selective approved inhibitor expected.
+TRIP13	3_mva_gene	decrease	functional_compensation	all	AAA+ ATPase that disassembles the MCC; inhibition could prolong whatever MCC forms in BubR1-deficient cells. Itself an MVA3 gene, so loss is also pathogenic: dosing direction is a testable hypothesis, not established.
+MAD2L1	1_direct_interactor	context	none	all	Core MCC partner of BubR1. Not pharmacologically modulable in the desired direction.
+BUB1	1_direct_interactor	context	none	all	Recruits BubR1 to kinetochores. Inhibition would worsen the checkpoint defect.
+BUB3	1_direct_interactor	context	none	all	BubR1 kinetochore adaptor (GLEBS motif). No drugs expected.
+CDC20	1_direct_interactor	decrease	downstream_correction	all	MCC target; inhibiting CDC20/APC/C could restore the mitotic delay lost with BubR1. Treated as a testable hypothesis per procedure Step 2 (only proTAME/apcin, preclinical).
+ANAPC2	1_direct_interactor	decrease	downstream_correction	all	APC/C cullin subunit contacted by the BubR1 TPR 'lasso'. Same caveat as CDC20.
+UBE2C	2_same_pathway	decrease	downstream_correction	all	APC/C E2 enzyme driving cyclin B1 degradation and mitotic exit.
+MAD1L1	2_same_pathway	context	none	all	Kinetochore MAD2 template; no drugs expected.
+TTK	2_same_pathway	decrease	vulnerability	rhabdomyosarcoma	MPS1 inhibition is synthetic-lethal with a weakened SAC (tumour-selective killing). Would also stress the child's own SAC-weak normal tissues: selective toxicity, not rescue.
+KIF18A	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	CIN-selective dependency, but requires a competent SAC to arrest; BubR1-deficient cells resist monotherapy.
+CENPE	1_direct_interactor	context	none	all	BubR1 partner at the kinetochore; inhibition (GSK923295) would worsen attachment errors.
+NDC80	2_same_pathway	context	none	all	Microtubule-binding kinetochore core; no drugs expected.
+SGO1	2_same_pathway	context	none	all	Cohesin protector; no drugs expected.
+AURKB	2_same_pathway	decrease	downstream_correction	all	Without BubR1-bound PP2A-B56, Aurora B phosphorylation is unopposed and attachments are destabilised; partial Aurora B inhibition could rebalance kinase/phosphatase activity.
+PLK1	1_direct_interactor	context	none	all	Phosphorylates the BubR1 KARD to recruit PP2A-B56; inhibition would remove the remaining recruitment signal (wrong direction).
+PPP2CA	1_direct_interactor	increase	downstream_correction	all	Catalytic subunit of PP2A-B56 recruited by BubR1 (LxxIxE); activation would compensate for lost recruitment. No approved activator expected.
+ESPL1	2_same_pathway	decrease	downstream_correction	all	Separase triggers anaphase once the SAC is satisfied; no drugs expected.
+PSMB5	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	Aneuploid cells are proteotoxically stressed and hypersensitive to proteasome inhibitors.
+HSP90AA1	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	Aneuploid cells depend on HSP90 chaperoning; synergy with APC/C inhibition reported.
+DHODH	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	Aneuploid cells depend on de novo pyrimidine synthesis.
+POLE	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	POLE exonuclease inhibition reported to kill highly aneuploid lines selectively.
+HIF1A	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	HIF1A inhibition lowered survival of aneuploid cells in mosaic settings.
+CTNNB1	4_indirect_CIN	decrease	phenotype_modulation	congenital_heart_defect	Wnt hyperactivity in BubR1-deficient hearts. The child has no reported heart defect: low phenotype relevance.
+PORCN	4_indirect_CIN	decrease	phenotype_modulation	congenital_heart_defect	Upstream Wnt secretion node (same rationale as CTNNB1).
+FOXM1	4_indirect_CIN	decrease	vulnerability	rhabdomyosarcoma	Transcriptional driver of BUB1B in rhabdomyosarcoma; RMS cells depend on FoxM1/Bub1b.
+BCL2L1	4_indirect_CIN	decrease	phenotype_modulation	muscle_atrophy_growth	Senescent-cell survival node (BCL-xL). Genetic clearance of p16+ senescent cells in BubR1 hypomorphic mice delayed sarcopenia.
+BCL2	4_indirect_CIN	decrease	phenotype_modulation	muscle_atrophy_growth	Senescent-cell anti-apoptotic node (same rationale as BCL2L1).
+SRC	4_indirect_CIN	decrease	phenotype_modulation	muscle_atrophy_growth	Dasatinib target class (SRC/ABL/ephrin kinases) mediating senolysis of senescent progenitors.
+ABL1	4_indirect_CIN	decrease	phenotype_modulation	muscle_atrophy_growth	Dasatinib primary target; included to capture the approved senolytic.
+MTOR	4_indirect_CIN	decrease	phenotype_modulation	muscle_atrophy_growth	Senomorphic route (suppresses SASP). General senescence biology, no BubR1-specific evidence found.
+FKBP1A	4_indirect_CIN	decrease	phenotype_modulation	muscle_atrophy_growth	ChEMBL annotates rapalogs (sirolimus, everolimus) against FKBP12, which they bind to inhibit mTORC1; added so the MTOR senomorphic route is not missed. Same caveat as MTOR.
+TUBB	4_indirect_CIN	caution	pharmacogenomic_caution	rhabdomyosarcoma	Target of vinca alkaloids/taxanes used in RMS therapy. Their efficacy relies on a functional SAC; BubR1/SAC loss is linked to spindle-poison resistance.
