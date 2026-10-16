@@ -15,21 +15,22 @@ KIF18A,Q8NI77,1,0,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,0,
 CENPE,Q02224,1,0,1_direct_interactor,context,none,all,0,0,,0,0.999,1.0
 NDC80,O14777,2,0,2_same_pathway,context,none,all,0,0,,0,0.997,1.0
 SGO1,Q5FBB7,0,0,2_same_pathway,context,none,all,0,0,,0,0.974,1.0
-AURKB,Q96GD4,5,18,2_same_pathway,decrease,downstream_correction,all,0,0,,9,0.986,1.0
+AURKB,Q96GD4,5,18,2_same_pathway,decrease,downstream_correction,all,0,0,,11,0.986,1.0
 PLK1,P53350,3,8,1_direct_interactor,context,none,all,0,0,,19,0.999,1.0
-PPP2CA,P67775,1,1,1_direct_interactor,increase,downstream_correction,all,0,0,,1,0.999,1.0
+PPP2CA,P67775,1,1,1_direct_interactor,increase,downstream_correction,all,0,0,,2,0.999,1.0
 ESPL1,Q14674,1,0,2_same_pathway,decrease,downstream_correction,all,0,0,,0,0.991,1.0
-PSMB5,P28074,4,7,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,3,3,BORTEZOMIB; CARFILZOMIB; IXAZOMIB CITRATE,5,0.497,2.0
-HSP90AA1,P07900,7,9,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,26,0.0,2.0
+PSMB5,P28074,4,7,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,3,3,BORTEZOMIB; CARFILZOMIB; IXAZOMIB CITRATE,6,0.497,2.0
+HSP90AA1,P07900,7,9,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,32,0.0,2.0
 DHODH,Q02127,1,6,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,2,2,LEFLUNOMIDE; TERIFLUNOMIDE,2,0.0,
-POLE,Q07864,1,6,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,4,4,CLOFARABINE; CYTARABINE; FLUDARABINE PHOSPHATE; GEMCITABINE HYDROCHLORIDE,5,0.498,
-HIF1A,Q16665,5,0,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,45,0.0,2.0
-CTNNB1,P35222,11,1,4_indirect_CIN,decrease,phenotype_modulation,congenital_heart_defect,0,0,,16,0.0,2.0
+POLE,Q07864,1,6,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,4,4,CLOFARABINE; CYTARABINE; FLUDARABINE PHOSPHATE; GEMCITABINE,6,0.498,
+HIF1A,Q16665,5,0,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,55,0.0,2.0
+CTNNB1,P35222,11,1,4_indirect_CIN,decrease,phenotype_modulation,congenital_heart_defect,0,0,,19,0.0,2.0
 PORCN,Q9H237,1,1,4_indirect_CIN,decrease,phenotype_modulation,congenital_heart_defect,0,0,,0,0.0,
-FOXM1,Q08050,2,0,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,0,0.915,1.0
-BCL2L1,Q07817,10,2,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,0,0,,1,0.0,3.0
-BCL2,P10415,9,4,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,1,1,VENETOCLAX,33,0.0,2.0
-SRC,P12931,7,13,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,4,4,BOSUTINIB; DASATINIB ANHYDROUS; TIRBANIBULIN; VANDETANIB,11,0.0,2.0
-ABL1,P00519,12,28,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,10,10,ASCIMINIB; ASCIMINIB HYDROCHLORIDE; BOSUTINIB; BOSUTINIB MONOHYDRATE; DASATINIB ANHYDROUS; IMATINIB MESYLATE,38,0.0,3.0
-MTOR,P42345,6,27,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,1,1,PERHEXILINE MALEATE,38,0.0,2.0
-TUBB,P07437,5,84,4_indirect_CIN,caution,pharmacogenomic_caution,rhabdomyosarcoma,18,0,,28,0.671,2.0
+FOXM1,Q08050,2,0,4_indirect_CIN,decrease,vulnerability,rhabdomyosarcoma,0,0,,1,0.915,1.0
+BCL2L1,Q07817,10,2,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,0,0,,17,0.0,3.0
+BCL2,P10415,9,4,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,1,1,VENETOCLAX,39,0.0,2.0
+SRC,P12931,7,13,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,4,4,BOSUTINIB; DASATINIB ANHYDROUS; TIRBANIBULIN; VANDETANIB,13,0.0,2.0
+ABL1,P00519,12,28,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,8,8,ASCIMINIB; BOSUTINIB; DASATINIB ANHYDROUS; IMATINIB; NILOTINIB; PONATINIB,45,0.0,3.0
+MTOR,P42345,6,27,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,1,1,PERHEXILINE,44,0.0,2.0
+FKBP1A,P62942,6,7,4_indirect_CIN,decrease,phenotype_modulation,muscle_atrophy_growth,5,5,EVEROLIMUS; PIMECROLIMUS; SIROLIMUS; TACROLIMUS ANHYDROUS; TEMSIROLIMUS,8,0.0,3.0
+TUBB,P07437,5,84,4_indirect_CIN,caution,pharmacogenomic_caution,rhabdomyosarcoma,17,0,,34,0.671,2.0

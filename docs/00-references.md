@@ -240,3 +240,25 @@ Recorded so the reasoning is not repeated. See `docs/02-findings.md` (Track 2, S
 | **Europe PMC** | Citation verification for every PMID recorded above | `https://www.ebi.ac.uk/europepmc/webservices/rest` |
 
 Open Targets was evaluated and **not used**: its GraphQL schema no longer exposes `knownDrugs` on `Target`, and the replacement field was unstable at the time of writing. ChEMBL covers the same curated mechanism data directly.
+
+
+## Sources at a Glance (Track 2, follow-up investigations and report)
+
+Cited in `02-findings.md` (Track 2 follow-up) and/or `output/track2/lostanos_track2_report.md`; every PMID verified against Europe PMC.
+
+21. Monoallelic BUB1B mutations and PCS syndrome; truncating alleles reduced by NMD, >50 % BubR1 decrease sufficient (Matsuura 2006): https://pubmed.ncbi.nlm.nih.gov/16411201/
+22. Oral NMN in healthy Japanese men (Irie 2020): https://pubmed.ncbi.nlm.nih.gov/31685720/
+23. Teriflunomide in paediatric multiple sclerosis, TERIKIDS (Chitnis 2021): https://pubmed.ncbi.nlm.nih.gov/34800398/
+24. Effects of reversine and proTAME on chromosome segregation in mouse oocytes (Yonekura 2025): https://pubmed.ncbi.nlm.nih.gov/40887771/
+25. NAD pool as an antitumour target against cancer stem cells (Navas 2023): https://pubmed.ncbi.nlm.nih.gov/36864434/
+26. Long-term nicotinamide riboside in ataxia-telangiectasia (Presterud 2024): https://pubmed.ncbi.nlm.nih.gov/37899683/
+27. Nicotinamide riboside in Werner syndrome, randomised crossover trial (Shoji 2025): https://pubmed.ncbi.nlm.nih.gov/40459998/
+28. Cellular senescence in ageing (Di Micco 2021): https://pubmed.ncbi.nlm.nih.gov/33328614/
+29. Senescence in cancer (Colucci 2025): https://pubmed.ncbi.nlm.nih.gov/40513577/
+30. Senolytics and senomorphics (Zhang 2023): https://pubmed.ncbi.nlm.nih.gov/35015337/
+31. MTOR regulates the pro-tumorigenic SASP via IL1A translation (Laberge 2015): https://pubmed.ncbi.nlm.nih.gov/26147250/
+32. mTOR regulates MAPKAPK2 translation to control the SASP (Herranz 2015): https://pubmed.ncbi.nlm.nih.gov/26280535/
+33. Temsirolimus added to chemotherapy in intermediate-risk rhabdomyosarcoma, ARST1431 (Gupta 2024): https://pubmed.ncbi.nlm.nih.gov/38936378/
+34. Metformin inhibits the SASP via IKK/NF-κB (Moiseeva 2013): https://pubmed.ncbi.nlm.nih.gov/23521863/
+35. Metformin and the hallmarks of ageing (Kulkarni 2020): https://pubmed.ncbi.nlm.nih.gov/32333835/
+36. JAK inhibition alleviates the SASP and frailty (Xu 2015): https://pubmed.ncbi.nlm.nih.gov/26578790/

@@ -1,0 +1,21 @@
+# Track 2 Pitch Video — Script (draft)
+
+**Target length:** 3:00 (about 430 spoken words at a calm pace). **Language:** English.
+**Visuals:** reuse the two existing figures in `docs/figures/` (both have EN versions) plus 3–4 simple title slides. No patient coordinates, no clinical document on screen.
+
+| Time | Visual | Narration |
+|---|---|---|
+| 0:00–0:20 | Title slide: *"No drug fixes the checkpoint. So what do we offer?"* — team name | This genome belongs to a real child with mosaic variegated aneuploidy, a condition with fewer than fifty known patients worldwide. Our question for Track 2: is there an existing medicine worth testing for this child? |
+| 0:20–0:45 | `bub1b_variants_explained` figure | In Track 1 we found two changes in *BUB1B*. One creates an early stop signal, so that copy of the gene is most likely destroyed before it makes protein. The other changes a single amino acid in the tail of the protein, the part that calls in a phosphatase to stabilise chromosome attachments. The result: too little BubR1, and what remains probably works less well. |
+| 0:45–1:05 | Mechanism chain slide (variants → less BubR1 → weak checkpoint → mis-segregation → aneuploidy; side arrow → senescent cells) | BubR1 is the cell's safety inspector before division. With less of it, chromosomes are split unevenly, and cells with the wrong chromosome count build up in the body. A second consequence is less known: low BubR1 also makes cells senescent — alive, not dividing, and inflammatory. |
+| 1:05–1:35 | `track2_mechanisms_explained` figure, section D (bars: 0 vs 26) | We mapped 35 proteins around BUB1B to approved drugs, and recorded not just whether a drug exists but whether it pushes the target in the right direction. The result was stark. The 18 proteins that touch BubR1 directly have zero approved drugs. All 26 we found act further away. No approved drug fixes the defect itself — so the honest question is which consequence is worth addressing. |
+| 1:35–1:55 | Section C of the same figure (retained vs discarded cards) | We discarded routes for five explicit reasons. Some had no drug, some pushed the wrong way, some were already tested and failed. Two strong literature mechanisms — for heart defects and microcephaly — we set aside because this child has neither. |
+| 1:55–2:20 | Slide: H1 — NAD+ → SIRT2 → BubR1 | Our first hypothesis is the only one that acts on the amount of BubR1. NAD+ precursors such as nicotinamide riboside support SIRT2, which protects BubR1 from degradation, and more BubR1 protects against aneuploidy in mice. These precursors were tolerated by children with another genome-instability syndrome. But rhabdomyosarcoma cells also depend on BubR1, and this child has had one. So we propose it only after remission, and only if a cell screen shows rescue without feeding tumour cells. |
+| 2:20–2:40 | Slide: H2 — senolytics vs senomorphics | Our second hypothesis targets senescence: clearing senescent cells delayed muscle wasting in BubR1-deficient mice, and this child has muscle atrophy. Because senescence also holds back cancer, we favour low-dose rapalogs that quiet these cells without killing them — and that already have safety data in children with rhabdomyosarcoma. |
+| 2:40–3:00 | Slide: proposed experiment (3 arms: rescue, selectivity, tumour safety) + "Pipeline reusable for any gene: swap the target panel" | Both ideas can be tested in one experiment: patient-like cells versus controls, with a tumour-safety arm built in. These are hypotheses, not treatments. But the pipeline is public and reusable: swap the gene panel, and it runs for the next rare child. |
+
+## Notes for recording
+- Keep the clinical disclaimer visible in the final slide: *"Hypotheses for experimental follow-up, not clinical recommendations."*
+- The section D bars in the HTML figure already show the re-run numbers (0 / 26). Capture them from `docs/figures/track2_mechanisms_explained.html` with the EN switch selected.
+- If timing runs long, cut the 1:35–1:55 block first; the discard table is in the report.
+- Upload to YouTube or Vimeo (unlisted is fine) and add the link to the submission.

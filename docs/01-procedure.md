@@ -44,12 +44,13 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 ### Step 2: VCF Pre-Filtering
 *   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, 5,012,204 variants)
-*   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation. This single, rapid step will safely strip away about 90-95% of the VCF leaving only rare/novel variants across the entire genome (coding and non-coding).
+*   **Action:** Reduce the massive 5M row VCF file to a manageable size using intrinsic quality metrics and a fast extrinsic common-variant subtraction, prior to API-based annotation. This single, rapid step strips away 88.2% of the VCF (the original estimate was 90-95%), leaving only rare/novel variants across the entire genome (coding and non-coding).
 *   **Filter 1: Intrinsic QC Filters (Zero external downloads)**
     *   **What it does:** Relies on the sequencing machine's own confidence scores present in the VCF file.
     *   **Implementation details (based on `track1_step0_exp01-data_exploration.ipynb`):**
         *   **The PASS Filter:** The `FILTER` column contains flags for unreliable variants (e.g., `LowQual`, `MQ40`). We keep only rows where `FILTER` is missing (represented as `NaN` or `.` in pandas/cyvcf2) or `PASS`.
         *   **Genotype Quality (GQ) & Sample-Level Depth (DP):** Instead of using aggregate metrics like `INFO_DP` or `QUAL` which can be unreliable in difficult mapping regions, we prioritize sample-level confidence. We use `FORMAT_GQ` to measure the confidence that the specific 0/1 or 1/1 call for this child is correct, and `FORMAT_DP` to ensure the sequencer read this specific coordinate enough times *in this patient's sample*. We keep only rows where `FORMAT_GQ >= 20` (99% confidence) and `FORMAT_DP >= 10`.
+        *   **Allelic Balance (AB):** For heterozygous calls, the fraction of reads supporting the ALT allele (`AD_ALT / (AD_REF + AD_ALT)`) must lie between 0.30 and 0.70. A true germline het should sit near 0.5; values far from it usually indicate mapping artefacts or contamination. The computed value is written as the `AB_FILTER` INFO tag. This is the largest single QC filter (248,144 variants dropped).
         *   **Output Format:** The output of this stage must be saved as a standard VCF (e.g., `track1_step2_intrinsic_qc.vcf.gz`), injecting any custom metrics (like Allelic Balance) as VCF `INFO` tags. Outputting a CSV here breaks compatibility with the bioinformatics tools required for Filter 2 and Step 3.
 *   **Filter 2: The "Common Variant" Subtraction (Lightweight Extrinsic)**
     *   **What it does:** Since MVA is an ultra-rare pediatric disease, the causal mutation cannot be common in the healthy public. We use a small "blacklist" database to perform a rapid subtraction.
@@ -62,7 +63,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results                                                                                                                                                                                 |
 | :--- | :--- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38, one tabix lookup per variant. | Processed 5,012,204 variants -> 4,428,273 survived intrinsic QC. Subtraction dropped 3,836,934 common variants. Final result: 591,339 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz` (405 s). |
+| `track1_step2_exp01-vcf_prefiltering.ipynb` | Applies Intrinsic QC & AB filters, followed by a Common Variant subtraction (MAF >= 1%) using dbSNP GRCh38, one tabix lookup per variant. | Processed 5,012,204 variants -> 4,428,273 survived intrinsic QC. Subtraction dropped 3,836,934 common variants (3,836,941 when counted per allele on multi-allelic sites, as `run_step2_prefilter.py` does; see `02-findings.md`). Final result: 591,339 ultra-rare variants saved to `track1_step2_rare_variants.vcf.gz` (405 s). |
 
 ### Step 3: VCF Annotation & Filtering (Updated)
 
@@ -74,7 +75,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 *   **What this does:** Predicts the consequence of each variant on the protein.
 *   **Tool:** SnpEff using the `GRCh38.99` database (built locally from Ensembl release 99).
 *   **Implementation:** Runs with the `-canon` flag to force a single canonical transcript per gene, avoiding duplicate outputs per isoform.
-*   **Filtering:** We keep only variants with `PUTATIVE_IMPACT` of `HIGH` or `MODERATE`, filtering out `LOW` and `MODIFIER` variants (~99.7% of the dataset) since rare disease-causing mutations overwhelmingly occur in coding regions or splice sites.
+*   **Filtering:** We keep only variants with `PUTATIVE_IMPACT` of `HIGH` or `MODERATE`, filtering out `LOW` and `MODIFIER` variants (99.85% of the dataset in the notebook run) since rare disease-causing mutations overwhelmingly occur in coding regions or splice sites.
 
 #### Stage 3.2: Population Frequency & Clinical Metadata (MyVariant.info)
 *   **What this does:** Fetches population frequencies, in-silico pathogenicity predictions, and known clinical classifications.
@@ -330,8 +331,9 @@ produced as a literature analysis with no code.
 | Step | Implementation | Description | Results |
 | :--- | :--- | :--- | :--- |
 | 1 · Mechanism | *(literature analysis)* | Characterises each allele and the combined effect: L751* stop-gain expected to undergo NMD (null allele), N1016K missense in the C-terminal pseudokinase domain required for PP2A-B56 recruitment. | Mechanistic chain established and recorded in `docs/02-findings.md`. |
-| 2 · Targets | *(literature analysis)* | Evidence-weighted network from BUB1B dysfunction to modifiable processes, across SAC components, APC/C regulation, kinetochore biology and aneuploidy vulnerabilities. | Five prioritised therapeutic nodes. **Four were subsequently revised or discarded in Step 3** (see below). |
-| 3 · Drugs | `notebooks/utils/track2_step3_drug_mapping.py` + `track2_target_panel.tsv` | Maps a 35-protein panel to approved drugs via ChEMBL (primary), DGIdb (cross-check) and STRING (network distance). Records direction concordance against the desired modulation. | **All 18 proteins at network distance 1 from BUB1B have zero approved concordant drugs**; all 25 drugs found act at distance 2-3. Outputs in `output/track2/`. |
+| 2 · Targets | *(literature analysis)* | Evidence-weighted network from BUB1B dysfunction to modifiable processes, across SAC components, APC/C regulation, kinetochore biology and aneuploidy vulnerabilities. | Five prioritised therapeutic nodes. **Four were subsequently revised or discarded in Step 3** (see below). The two hypotheses finally prioritised in Step 4 (NAD+/SIRT2, senescence) were not among these five: they come from the BubR1-dosage and senescence literature in `00-references.md` §4-5, added during Steps 3-4. |
+| 3 · Drugs | `notebooks/utils/track2_step3_drug_mapping.py` + `track2_target_panel.tsv` | Maps a 35-protein panel to approved drugs via ChEMBL (primary), DGIdb (cross-check) and STRING (network distance). Records direction concordance against the desired modulation. | **All 18 proteins at network distance 1 from BUB1B have zero approved concordant drugs**; all 26 approved concordant drugs found act on proteins at distance 2-3 or with no STRING path to BUB1B. Outputs in `output/track2/`. |
+| 3 · CMap/LINCS | — | Transcriptomic signature check proposed above as supporting evidence. | **Not performed.** No candidate in the current ranking relies on it; the Step 4 scores use only literature, ChEMBL/DGIdb and STRING evidence. Either run it for the H1/H2 compounds or drop it from the Step 3 description. |
 | 3 · Figure | `docs/figures/build_track2_mechanisms_figure.py` | Documents all 12 routes with the reason each is retained or discarded, in five categories. EN/ES, same build-script convention as the Track 1 figure. | `docs/figures/track2_mechanisms_explained.html` + PNG. |
 | 4 · Prioritisation | `notebooks/utils/track2_step4_prioritize.py` + `track2_step4_candidates.tsv` | Transparent weighted scoring on the five axes above, with mechanistic relevance and directionality dominant so drug availability alone cannot carry a candidate. | Two prioritised hypotheses: NAD+/SIRT2 BubR1 stabilisation (0.817) and senescent-cell clearance (0.667). Output in `output/track2/`. |
 | 5 · Deliverables | — | Report, AI-usage disclosure, pitch video. | **Not started.** |

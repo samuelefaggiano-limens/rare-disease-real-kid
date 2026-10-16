@@ -77,17 +77,17 @@ T = {
     "secD": ("D · LA PARADOJA QUE ENCONTRAMOS", "D · THE PARADOX WE FOUND"),
     "d_lead": ("Cuanto más cerca del defecto, menos fármacos existen.",
                "The closer to the defect, the fewer drugs exist."),
-    "d_body": ("Medimos la distancia de cada proteína a BUB1B en la red de interacciones (STRING) y contamos cuántos fármacos aprobados actúan sobre ella en la dirección deseada. El resultado es tajante: las 18 proteínas que tocan a BubR1 directamente no tienen ni un solo fármaco aprobado. Todos los fármacos que encontramos están a dos o tres pasos de distancia, actuando sobre consecuencias y no sobre la causa.",
-               "We measured each protein's distance to BUB1B in the interaction network (STRING) and counted how many approved drugs act on it in the desired direction. The result is stark: the 18 proteins that touch BubR1 directly have not a single approved drug. Every drug we found is two or three steps away, acting on consequences rather than on the cause."),
+    "d_body": ("Medimos la distancia de cada proteína a BUB1B en la red de interacciones (STRING) y contamos cuántos fármacos aprobados actúan sobre ella en la dirección deseada. El resultado es tajante: las 18 proteínas que tocan a BubR1 directamente no tienen ni un solo fármaco aprobado. Todos los fármacos que encontramos están a dos o tres pasos de distancia, o sin conexión en la red, actuando sobre consecuencias y no sobre la causa.",
+               "We measured each protein's distance to BUB1B in the interaction network (STRING) and counted how many approved drugs act on it in the desired direction. The result is stark: the 18 proteins that touch BubR1 directly have not a single approved drug. Every drug we found is two or three steps away, or not connected in the network at all, acting on consequences rather than on the cause."),
     "d_axis_x": ("Distancia a BUB1B en la red", "Distance to BUB1B in the network"),
     "d_axis_y": ("Fármacos aprobados concordantes", "Approved concordant drugs"),
     "d_d1": ("distancia 1 · contacto directo", "distance 1 · direct contact"),
-    "d_d2": ("distancia 2-3 · consecuencias", "distance 2-3 · consequences"),
+    "d_d2": ("distancia ≥2 · consecuencias", "distance ≥2 · consequences"),
     "d_zero": ("CERO fármacos", "ZERO drugs"),
     "d_n": ("18 proteínas: CDC20, TRIP13, TTK, AURKB, PLK1, BUB1, BUB3, MAD2L1, CENPE, NDC80, SGO1, ESPL1, UBE2C, ANAPC2, MAD1L1, KIF18A, PPP2CA, FOXM1",
             "18 proteins: CDC20, TRIP13, TTK, AURKB, PLK1, BUB1, BUB3, MAD2L1, CENPE, NDC80, SGO1, ESPL1, UBE2C, ANAPC2, MAD1L1, KIF18A, PPP2CA, FOXM1"),
-    "d_n2": ("7 proteínas con fármaco: PSMB5, DHODH, POLE, BCL2, SRC, ABL1, MTOR",
-             "7 proteins with a drug: PSMB5, DHODH, POLE, BCL2, SRC, ABL1, MTOR"),
+    "d_n2": ("8 proteínas con fármaco: PSMB5, BCL2, SRC, MTOR, ABL1, FKBP1A, DHODH, POLE",
+             "8 proteins with a drug: PSMB5, BCL2, SRC, MTOR, ABL1, FKBP1A, DHODH, POLE"),
 
     # legend
     "leg_t": ("MOTIVOS DE DESCARTE", "REASONS FOR DISCARDING"),
@@ -414,7 +414,7 @@ def build(static: str | None = None) -> str:
         <div class="bnote">{bi('d_n', static)}</div>
       </div>
       <div class="bar">
-        <div class="bval" style="color:var(--keep)">25</div>
+        <div class="bval" style="color:var(--keep)">26</div>
         <div class="col c1"></div>
         <div class="blab">{bi('d_d2', static)}</div>
         <div class="bnote">{bi('d_n2', static)}</div>
