@@ -336,13 +336,15 @@ produced as a literature analysis with no code.
 | 3 · CMap/LINCS | — | Transcriptomic signature check proposed above as supporting evidence. | **Not performed.** No candidate in the current ranking relies on it; the Step 4 scores use only literature, ChEMBL/DGIdb and STRING evidence. Either run it for the H1/H2 compounds or drop it from the Step 3 description. |
 | 3 · Figure | `docs/figures/build_track2_mechanisms_figure.py` | Documents all 12 routes with the reason each is retained or discarded, in five categories. EN/ES, same build-script convention as the Track 1 figure. | `docs/figures/track2_mechanisms_explained.html` + PNG. |
 | 4 · Prioritisation | `notebooks/utils/track2_step4_prioritize.py` + `track2_step4_candidates.tsv` | Transparent weighted scoring on the five axes above, with mechanistic relevance and directionality dominant so drug availability alone cannot carry a candidate. | Two prioritised hypotheses: NAD+/SIRT2 BubR1 stabilisation (0.817) and senescent-cell clearance (0.667). Output in `output/track2/`. |
-| 5 · Deliverables | — | Report, AI-usage disclosure, pitch video. | **Not started.** |
+| 5 · Deliverables | `output/track2/lostanos_track2_report.md`, `lostanos_track2_methods_description.xlsx`, `lostanos_track2_pitch_script.md` | Report, methods form, AI-usage disclosure, pitch video. | Report and methods form drafted; pitch video recorded. AI-usage disclosure still pending. |
+| 6 · MVA-wide scan | `notebooks/utils/track2_step6_mva_druggability_scan.py` | Scalability check: the same drug lookup run automatically (no curated panel, direction-agnostic) on the top-15 STRING interactors of all eight genes with a reported MVA phenotype. | Only 2 of 108 first-shell interactors have any approved drug, neither relevant to chromosome segregation; no MVA gene is itself druggable. ~4 min. Outputs `output/track2/track2_step6_mva_scan_*.csv`. |
 
 **Reproducing Track 2:**
 
 ```bash
 python notebooks/utils/track2_step3_drug_mapping.py   # ~5 min, queries ChEMBL/DGIdb/STRING
 python notebooks/utils/track2_step4_prioritize.py     # instant, offline
+python notebooks/utils/track2_step6_mva_druggability_scan.py  # ~4 min, all 8 MVA genes
 python docs/figures/build_track2_mechanisms_figure.py # regenerates the figure
 ```
 

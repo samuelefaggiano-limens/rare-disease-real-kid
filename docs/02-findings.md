@@ -304,3 +304,25 @@ This step asks whether a *secondary* pharmacological strategy — either a co-ad
 
 **Summary**: 
 We asked whether the two main risks of our top drug ideas — helping a tumour grow while trying to fix the cell-division defect — could be solved by adding another medicine. For the NAD+ boosters, the answer is no: a drug that blocks BubR1 or NAD+ production would cancel out the very thing we are trying to boost, and it would add toxicity to a child whose kidneys are already affected. What *does* help instead is timing and precedent: trials in two similar childhood DNA-repair diseases showed NAD+ boosters are safe during tumour-free periods, and one of them even improved kidney markers. For clearing "zombie" (senescent) cells, there is a better alternative: instead of destroying those cells (which removes a natural anti-cancer lock), we can use **senomorphics** — approved drugs like low-dose **sirolimus or everolimus** — that "muzzle" the harmful chemicals the zombie cells release while leaving the cells themselves in place. Studies show these drugs both calm the muscle-wasting inflammation *and* stop senescent cells from encouraging tumour growth, which is the opposite of the senolytic risk. The catch remains that none of this has been tested in cells carrying this child's exact mutation, so the next step is still a carefully controlled laboratory experiment.
+
+## Track 2: The druggability gap is general to MVA (Step 6)
+**Source:** `notebooks/utils/track2_step6_mva_druggability_scan.py`; outputs `output/track2/track2_step6_mva_scan_summary.csv`, `track2_step6_mva_scan_proteins.csv`
+
+Step 3 found no approved, direction-concordant drug on any protein at STRING distance 1 from BUB1B. To test whether that is specific to BUB1B, the same lookup was run automatically for all eight genes with a reported MVA or MVA-like phenotype (BUB1B, CEP57, TRIP13, MAD2L1BP, CEP192, SMC5, BUB1, CENATAC): top 15 STRING interactors per gene at combined score >= 0.7, ChEMBL mechanisms through every target containing each protein, approved (max_phase 4) and not withdrawn, any direction.
+
+| MVA gene | Gene itself druggable | First-shell interactors | With any approved drug |
+|---|---|---|---|
+| BUB1B | no | 15 | 0 |
+| CEP57 | no | 5 | 0 |
+| TRIP13 | no | 15 | 0 |
+| MAD2L1BP | no | 13 | 0 |
+| CEP192 | no | 15 | 1 (EGLN2: daprodustat, roxadustat, vadadustat) |
+| SMC5 | no | 15 | 1 (DDB1: lenalidomide, pomalidomide) |
+| BUB1 | no | 15 | 0 |
+| CENATAC | no | 15 | 0 |
+
+*   **2 of 108 interactors (90 unique proteins) carry any approved drug, and neither hit is mechanistically relevant.** Lenalidomide and pomalidomide are annotated to DDB1 because they act on the CRBN–DDB1 ubiquitin ligase; the HIF prolyl-hydroxylase inhibitors reach EGLN2. Both are complexes the partner joins for functions unrelated to chromosome segregation.
+*   **Positive controls behave as expected:** PSMB5 returns bortezomib, carfilzomib and ixazomib; ABL1 returns imatinib and five other kinase inhibitors; TUBB returns taxanes, vinca alkaloids and colchicine. AURKB, PLK1 and CDK1 correctly return nothing approved. The empty result is therefore not an API failure.
+*   **Interpretation.** Across MVA, the defective machinery (SAC, centrosome, SMC5/6, minor spliceosome for CENATAC) sits in a part of the proteome with no approved drugs. Repurposing for any MVA subtype will have to act on consequences (BubR1 dosage, senescence, treatment sensitivity), as Track 2 does for this child. The scan is direction-agnostic, so it is an upper bound on druggability; choosing the direction of modulation remains the expert step done with the curated Step 3 panel.
+*   **Scalability.** The scan needs no curation, uses no patient data, and runs in about four minutes for eight genes.
+

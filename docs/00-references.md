@@ -262,3 +262,4 @@ Cited in `02-findings.md` (Track 2 follow-up) and/or `output/track2/lostanos_tra
 34. Metformin inhibits the SASP via IKK/NF-κB (Moiseeva 2013): https://pubmed.ncbi.nlm.nih.gov/23521863/
 35. Metformin and the hallmarks of ageing (Kulkarni 2020): https://pubmed.ncbi.nlm.nih.gov/32333835/
 36. JAK inhibition alleviates the SASP and frailty (Xu 2015): https://pubmed.ncbi.nlm.nih.gov/26578790/
+37. ACMG/AMP standards for the interpretation of sequence variants (Richards 2015): https://pubmed.ncbi.nlm.nih.gov/25741868/

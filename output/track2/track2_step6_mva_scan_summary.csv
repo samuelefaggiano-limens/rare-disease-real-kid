@@ -1,0 +1,9 @@
+mva_gene,gene_itself_has_approved_drug,first_shell_proteins,first_shell_with_approved_drug,fraction_druggable,druggable_proteins
+BUB1B,False,15,0,0.0,
+CEP57,False,5,0,0.0,
+TRIP13,False,15,0,0.0,
+MAD2L1BP,False,13,0,0.0,
+CEP192,False,15,1,0.07,EGLN2 (3)
+SMC5,False,15,1,0.07,DDB1 (2)
+BUB1,False,15,0,0.0,
+CENATAC,False,15,0,0.0,

@@ -1,7 +1,7 @@
 # Drug Repurposing Hypotheses for BUB1B-Related Mosaic Variegated Aneuploidy
 
 **MVA Hackathon 2026 — Track 2 (Drug Repurposing)**
-**Team:** Los Tanos · **Report status:** DRAFT (2026-10-13)
+**Team:** Los Tanos · **Report status:** final draft (2026-10-20)
 **Code:** https://github.com/samuelefaggiano-limens/rare-disease-real-kid
 
 > These are hypotheses for experimental follow-up, not evidence that any medicine works, and not clinical recommendations. Any decision about this child's care belongs to the treating team.
@@ -21,13 +21,15 @@ We scored the surviving routes with a transparent, weighted framework in which m
 | | Hypothesis | Concept | Score |
 |---|---|---|---|
 | **H1** | **NAD+ precursors (niacin, nicotinamide riboside) → SIRT2 → BubR1 stabilisation** | functional compensation | 0.817 |
-| **H2** | **Senescent-cell clearance (dasatinib + quercetin)** | phenotype modulation | 0.667 |
+| **H2** | **Targeting BubR1-driven senescent cells (low-dose rapalogs as senomorphics; senolytics as comparator)** | phenotype modulation | 0.667 |
 
 H1 is the only route we found that acts on the amount of BubR1 rather than on its consequences. It carries an open contradiction that we state up front: rhabdomyosarcoma cells depend on BUB1B, and this child has had a rhabdomyosarcoma. H2 has the most direct match between model and phenotype in the analysis: senescent-cell clearance delayed muscle wasting in BubR1-deficient mice, and this child has muscle atrophy. For each hypothesis we propose an experiment that distinguishes phenotypic rescue from selective toxicity or proliferative side effects.
 
 Both hypotheses carry a tumour-related drawback, and we examined how to mitigate each one (§5):
 - **H1:** the mitigation is *timing*, not a second drug. Co-administering an NAD+- or BubR1-lowering agent would cancel the rescue itself. H1 is therefore framed as a remission-maintenance hypothesis, supported by nicotinamide riboside safety data from two other genome-instability syndromes.
 - **H2:** the mitigation is a *different drug class within the same node*. Low-dose rapalogs act as **senomorphics**: they suppress the inflammatory secretome of senescent cells without killing them, keep the anti-tumour arrest in place, and have paediatric rhabdomyosarcoma exposure data.
+
+**Beyond this child.** Running the same lookup automatically for all eight genes with a reported MVA phenotype shows the druggability gap is not specific to *BUB1B*: only 2 of 108 high-confidence first-shell interactors have any approved drug, and neither acts on the mitotic defect (§9). The method itself is gene-agnostic and ran in about four minutes. §10 sets out what the proposed experiments would contribute to understanding and diagnosing MVA, including functional classification of the child's unclassified missense variant.
 
 ---
 
@@ -180,7 +182,7 @@ H3 has the highest number but is **excluded by design**: it is a research questi
 
 ## 5. Prioritised hypotheses
 
-### H1 — NAD+ precursors to stabilise the remaining BubR1
+### 5.1 H1 — NAD+ precursors to stabilise the remaining BubR1
 
 1. **BUB1B defect and affected process.** BubR1 quantity is reduced: one allele is null, and the other probably produces a hypomorphic protein. The result is SAC weakness and mis-segregation.
 2. **Target and drug mechanism.**
@@ -205,7 +207,7 @@ H3 has the highest number but is **excluded by design**: it is a research questi
    - **Readouts:** BubR1 protein (immunoblot), K668 acetylation (IP–MS), micronuclei, mis-segregation by live imaging, aneuploidy by single-cell karyotyping.
    - **Run the same exposure in matched rhabdomyosarcoma lines** to test whether it increases proliferation. This separates phenotypic rescue from a pro-tumour effect.
 
-### H2 — Clearance of senescent cells
+### 5.2 H2 — Targeting BubR1-driven senescent cells
 
 1. **BUB1B defect and affected process.** Low BubR1 drives accumulation of p16-positive senescent cells. This arm is independent of mis-segregation and contributes to tissue degeneration, including sarcopenia.
 2. **Target and drug mechanism.** Senolytics kill senescent cells by disabling the pro-survival network those cells depend on (SRC/ABL family kinases, BCL-xL, PI3K nodes; Zhu 2015, PMID 25754370). The best-studied combination is **dasatinib** (an approved drug) **+ quercetin** (a supplement); fisetin is an alternative.
@@ -230,6 +232,28 @@ H3 has the highest number but is **excluded by design**: it is a research questi
      - low-dose sirolimus (senomorphic): does it lower IL-6/IL-1α and the other SASP markers **while the proliferative arrest is retained rather than released**?
    - Run a conditioned-medium assay on rhabdomyosarcoma lines to test whether each arm reduces or increases the paracrine growth support from senescent cells.
    - **In BubR1-hypomorphic mice:** compare pharmacological senolysis against the published genetic-clearance readouts, with **tumour incidence as a co-primary endpoint**.
+
+### 5.3 Evidence chain at a glance
+
+Each hypothesis is only as strong as its weakest link. The table grades every link separately, by the system the evidence comes from, so the gaps are visible rather than averaged away.
+
+| Hypothesis | Link in the chain | Evidence (system) | Strength |
+|---|---|---|---|
+| both | L751\* removes one allele's protein | Truncating *BUB1B* alleles reduced by NMD in PCS/MVA patient cells (human cells; PMID 16411201) | strong |
+| both | N1016K impairs the remaining protein | Pseudokinase-domain position (PMID 33207204); discordant in-silico predictors; no assay | **weak** |
+| both | Less BubR1 causes aneuploidy and the progeroid / muscle phenotype | Hypomorphic mice (PMID 15208629); >50 % BubR1 decrease sufficient in patients (PMID 16411201) | strong |
+| H1 | More BubR1 is protective | Overexpression mice (PMID 23242215) | strong (mouse) |
+| H1 | NAD+ precursors raise BubR1 via SIRT2 | NMN in mice; SIRT2 overexpression in BubR1-hypomorphic mice (PMID 24825348) | moderate (one study, mouse) |
+| H1 | The route works on the N1016K protein | K668 lies outside both variants (inference) | **absent — §7 experiment** |
+| H1 | Tolerated in humans, including children | NR in ataxia-telangiectasia (PMIDs 34515380, 37899683); RCT in Werner syndrome (PMID 40459998) | moderate (other diseases) |
+| H1 | Does not promote rhabdomyosarcoma | RMS cells depend on FoxM1/BUB1B (PMID 23002205) | **open risk — §7, §9.1** |
+| H2 | Low BubR1 drives senescent-cell accumulation | BubR1-hypomorphic mice (PMID 22048312) | strong (mouse) |
+| H2 | Removing that burden delays muscle wasting | Genetic p16+ clearance in the same mice (PMID 22048312) | moderate (genetic, not drug) |
+| H2 | Rapalogs suppress the SASP and its tumour-promoting effect | Human cells and mouse xenografts (PMIDs 26147250, 26280535) | moderate |
+| H2 | Paediatric exposure in RMS | ARST1431 phase 3 (PMID 38936378) | strong for safety, none for efficacy |
+| H2 | Effective in a BubR1-deficient system | Not tested | **absent — §7 experiment** |
+
+Both hypotheses fail or stand on the links marked **absent**, and both are tested by the same experiment (§7). That is deliberate: the cheapest decisive experiment targets the weakest link.
 
 ---
 
@@ -290,7 +314,22 @@ Both prioritised hypotheses can be tested in one cellular system:
 - **Phenotype-anchored filtering.** Mechanisms were checked against *this child's* documented phenotype. As a result, two well-evidenced MVA mechanisms (microcephaly, heart defects) were discarded for this child.
 - **Scalability.** The pipeline is driven by a gene-level target panel (a TSV) and public APIs. Re-running it for another MVA gene (*CEP57*, *TRIP13*) or another monogenic disorder only requires a new panel. No patient data is used anywhere in Track 2.
 
-> **TODO (team):** consider demonstrating this with a second panel (e.g. *CEP57*) and adding its result table here.
+**Scalability, demonstrated rather than claimed.** We re-ran the drug lookup automatically for all eight genes with a reported MVA or MVA-like phenotype (`notebooks/utils/track2_step6_mva_druggability_scan.py`). For each gene, it takes the top 15 high-confidence STRING interactors (score ≥ 0.7), and queries ChEMBL for approved drugs acting on any target that contains each protein, in any direction. The run takes about four minutes, needs no curation, and uses no patient data.
+
+| MVA gene | Gene itself druggable | First-shell interactors | With any approved drug |
+|---|---|---|---|
+| *BUB1B* (MVA1) | no | 15 | 0 |
+| *CEP57* (MVA2) | no | 5 | 0 |
+| *TRIP13* (MVA3) | no | 15 | 0 |
+| *MAD2L1BP* | no | 13 | 0 |
+| *CEP192* | no | 15 | 1 (EGLN2: HIF prolyl-hydroxylase inhibitors) |
+| *SMC5* | no | 15 | 1 (DDB1: lenalidomide, pomalidomide via CRBN–DDB1) |
+| *BUB1* | no | 15 | 0 |
+| *CENATAC* | no | 15 | 0 |
+
+**2 of 108** interactors (90 unique proteins) have any approved drug, and neither acts on chromosome segregation: both hits come from complexes that the partner protein joins for unrelated functions. Positive controls behave as expected (PSMB5 → proteasome inhibitors, ABL1 → tyrosine-kinase inhibitors, TUBB → taxanes and vinca alkaloids). The finding of §3.2 therefore generalises: **across MVA, the defect sits in an undrugged part of the proteome**, and repurposing for any MVA child will have to act on consequences — dosage, senescence, treatment sensitivity — as we did here. This is a disease-level result, not only a case-level one.
+
+Because the scan is direction-agnostic it is an upper bound on druggability; choosing the direction of modulation remains the expert step, and the curated-panel method of Step 3 is how it is done. Outputs: `output/track2/track2_step6_mva_scan_summary.csv` and `track2_step6_mva_scan_proteins.csv`.
 
 ### 9.1 A fast route to the H1 tumour-safety question
 
@@ -300,11 +339,24 @@ Both prioritised hypotheses can be tested in one cellular system:
 
 ---
 
-## 10. Reproducibility
+## 10. Potential impact on understanding and diagnosing MVA
+
+If the experiments proposed here are run, their value does not depend on either drug working.
+
+- **A functional classification for the child's missense variant.** p.Asn1016Lys has no ClinVar record, and in-silico predictors disagree (§2.2). The rescue arm of §7 measures BubR1 level, checkpoint function and segregation errors in cells carrying it. That is functional evidence in the ACMG/AMP framework (criteria PS3/BS3; Richards 2015, PMID 25741868). Submitting it to ClinVar would turn an unclassified variant into a classified one for the next family that carries it. Confirming that the two variants are on different copies of the gene still needs parental samples or long-read sequencing.
+- **A reusable cellular readout for new *BUB1B* variants.** The same assay panel (BubR1 protein, micronuclei, aneuploidy by single-cell karyotyping, SAC arrest duration, p16/SASP senescence burden) is a quantitative phenotype for any patient-derived or isogenic *BUB1B* line. It could serve as a functional test for future variants of uncertain significance and as an endpoint for any MVA intervention study.
+- **Chemotherapy sensitivity in MVA children with cancer (H3).** Whether a constitutionally weakened checkpoint shifts the response to vinca alkaloids and taxanes is directly relevant to how children with MVA and rhabdomyosarcoma or Wilms tumour are dosed. Today the only guidance is case reports (PMID 31184400).
+- **A disease-level map of where intervention is possible.** The MVA-wide scan (§9) shows that the proteins closest to every known MVA gene are essentially undrugged. Future work on any MVA subtype can start from the consequence layer (BubR1 dosage, senescence, treatment sensitivity) instead of rediscovering the gap.
+- **A testable senescence component of MVA.** If senescence burden is elevated in patient cells and responds to senomorphics, part of the growth failure and muscle wasting seen in MVA would be attributable to a modifiable process, not only to aneuploidy itself.
+
+---
+
+## 11. Reproducibility
 
 ```bash
 python notebooks/utils/track2_step3_drug_mapping.py   # ~5 min; live ChEMBL / DGIdb / STRING queries
 python notebooks/utils/track2_step4_prioritize.py     # offline, instant
+python notebooks/utils/track2_step6_mva_druggability_scan.py  # ~4 min; same lookup for all 8 MVA genes
 python docs/figures/build_track2_mechanisms_figure.py # explanatory figure (EN/ES)
 ```
 
@@ -313,6 +365,7 @@ python docs/figures/build_track2_mechanisms_figure.py # explanatory figure (EN/E
 - `track2_step3_target_summary.csv`
 - `track2_step3_string_network.csv`
 - `track2_step4_prioritised_hypotheses.csv`
+- `track2_step6_mva_scan_summary.csv`, `track2_step6_mva_scan_proteins.csv`
 
 **Full analysis trail:** `docs/01-procedure.md`, `docs/02-findings.md`, `docs/00-references.md`.
 
@@ -329,7 +382,7 @@ Open Targets was evaluated and not used: its `knownDrugs` field was unavailable 
 
 ---
 
-## 11. AI usage disclosure
+## 12. AI usage disclosure
 
 > **TODO (team — required):** provider, plan/tier and data-handling setting for each AI tool used, e.g. "Anthropic, Claude Opus via Claude Code, <plan>, <training/retention setting>" and "Google, Gemini Pro, <plan>, <setting>".
 
@@ -373,3 +426,4 @@ AI assistants were used for literature triage, code writing and drafting text. E
 32. Gupta AA et al. 2024. Addition of temsirolimus to chemotherapy in children, adolescents, and young adults with intermediate-risk rhabdomyosarcoma (ARST1431). *Lancet Oncol.* PMID 38936378
 33. Moiseeva O et al. 2013. Metformin inhibits the senescence-associated secretory phenotype by interfering with IKK/NF-kB activation. *Aging Cell.* PMID 23521863
 34. Xu M et al. 2015. JAK inhibition alleviates the cellular senescence-associated secretory phenotype and frailty in old age. *Proc Natl Acad Sci U S A.* PMID 26578790
+35. Richards S et al. 2015. Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the ACMG and AMP. *Genet Med.* PMID 25741868
