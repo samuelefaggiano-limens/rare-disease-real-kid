@@ -38,7 +38,7 @@ From 5,012,204 variants in the child's whole-genome VCF, the pipeline ranks a **
 | 1 | Methods description: [`output/track1/methods_description_submission.md`](output/track1/methods_description_submission.md) · report: [`output/track1/lostanos_track1_report.pdf`](output/track1/lostanos_track1_report.pdf) |
 | 2 | Report: [`output/track2/lostanos_track2_report.md`](output/track2/lostanos_track2_report.md) |
 | 2 | Methods description (organisers' template): [`output/track2/lostanos_track2_methods_description.xlsx`](output/track2/lostanos_track2_methods_description.xlsx) |
-| 2 | Pitch video: *link added on upload* · script: [`output/track2/lostanos_track2_pitch_script.md`](output/track2/lostanos_track2_pitch_script.md) |
+| 2 | Pitch video (3 min): [https://youtu.be/VfQNrXNkbF0](https://youtu.be/VfQNrXNkbF0) · script: [`output/track2/lostanos_track2_pitch_script.md`](output/track2/lostanos_track2_pitch_script.md) |
 | both | Figures for non-specialists (EN/ES): [`docs/figures/`](docs/figures/) |
 
 ## Repository layout

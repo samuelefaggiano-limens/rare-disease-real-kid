@@ -2,7 +2,8 @@
 
 **MVA Hackathon 2026 — Track 2 (Drug Repurposing)**
 **Team:** Los Tanos · **Report status:** final (2026-10-20)
-**Code:** https://github.com/samuelefaggiano-limens/rare-disease-real-kid
+**Code:** https://github.com/samuelefaggiano-limens/rare-disease-real-kid  
+**Pitch video:** https://youtu.be/VfQNrXNkbF0
 
 > These are hypotheses for experimental follow-up, not evidence that any medicine works, and not clinical recommendations. Any decision about this child's care belongs to the treating team.
 
