@@ -31,13 +31,15 @@ Outputs (output/track2/):
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from track2_step3_drug_mapping import (STRING, STRING_MIN_SCORE, _session, chembl_mechanisms,
-                                       chembl_molecule, chembl_targets, uniprot_accession)
+                                       chembl_molecule, chembl_targets, uniprot_accession)  # noqa: E402
 
 # Genes with a reported MVA or MVA-like phenotype (docs/00-references.md, Track 1 panel).
 MVA_GENES = ["BUB1B", "CEP57", "TRIP13", "MAD2L1BP", "CEP192", "SMC5", "BUB1", "CENATAC"]

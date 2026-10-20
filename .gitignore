@@ -194,14 +194,15 @@ __marimo__/
 
 # MVA Hackathon Specific
 data/
+data
 download.log
 
 # Others
 AGENTS.md
 
 # Herramientas descargadas por maquina (especificas de plataforma o enormes).
-# El JDK vendorizado es de Windows y no sirve en macOS/Linux; snpEff se
-# descomprime desde snpEff.zip, que si esta versionado.
+# El JDK vendorizado es de Windows y no sirve en macOS/Linux; snpEff se descarga
+# aparte y la base GRCh38.99 se construye localmente (docs/02-findings.md).
 java17/
 openjdk17.zip
 snpEff/

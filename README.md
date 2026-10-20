@@ -1,125 +1,107 @@
-# Rare Disease, Real Kid: MVA Hackathon 2026
+# Rare Disease, Real Kid: MVA Hackathon 2026 — team Los Tanos
 
-Repository for participating in the [SageBio/rare-disease-real-kid-mva-hackathon-2026](https://huggingface.co/spaces/SageBio/rare-disease-real-kid-mva-hackathon-2026) Hugging Face Space.
+Our submission to the [SageBio "Rare Disease, Real Kid" MVA Hackathon 2026](https://huggingface.co/spaces/SageBio/rare-disease-real-kid-mva-hackathon-2026). The genome and clinical story belong to a real child living with Mosaic Variegated Aneuploidy (MVA), an ultra-rare condition affecting fewer than 50 people worldwide, with no established treatment.
 
-## Overview
-The genome and clinical story here belong to a real child living with Mosaic Variegated Aneuploidy (MVA), an ultra-rare genetic condition affecting fewer than 50 people worldwide.
+**Team:** Samuele Faggiano, Lara Pugnaloni.
 
----
-
-## Track 1 - Variant Prediction
-**Goal:** Predict the specific genetic variant(s) driving the child's Mosaic Variegated Aneuploidy (MVA) using their clinical symptoms (phenotype) and genomic data (genotype). 
-
-This is a foundational track designed to validate that our pipeline can recover a clinically confirmed variant from real patient data among millions of possibilities. 
-**The Ground Truth:** The organizers already know the exact genetic variant causing this child's disease because a team of medical geneticists previously analyzed the child's DNA and confirmed the diagnosis. Our challenge is to build an algorithm to find that exact same "needle in the haystack" using only the provided data.
-
-### The Input Data
-The necessary data has been downloaded and is available in the local `data/` directory.
-
-#### 1. Clinical Data
-*   **File:** `data/Challenge_Clinical_Phenotype_1.docx` (17 KB)
-*   **What it is:** A detailed clinical description of the child's observable symptoms and medical history (likely containing standardized HPO terms). This is crucial for guiding our search toward specific biological pathways.
-
-#### 2. Processed Genomic Data (VCF)
-*   **Files:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (301 MB) and its index `.tbi` (2.3 MB)
-*   **What it is:** A highly refined list of genetic differences. The variants in this file were processed and filtered using **GATK VariantFiltration (v4.2.4.0)** with standard hard filters (e.g., `QD < 2.0`, `MQ < 40.0`). The coordinates match the **GRCh38** reference genome assembly (using numeric contig notation like `1`, `2` rather than `chr1`).
-*   **How we use it:** **This is our primary dataset.** We will filter these millions of variants down to find the ultra-rare, pathogenic mutation causing the disease.
-
-#### 3. Raw Genomic Data (FASTQ)
-*   **Files:** `data/WGS_EX2312012_HGWCNDSX7_S16_L00[1-4]_R[1-2]_001.fastq.gz` (8 paired-end read files spanning 4 lanes, totaling ~82 GB)
-*   **What it is:** The raw, unaligned output directly from an Illumina DNA sequencing machine. 
-*   **How we use it:** We will likely ignore this for Track 1, as the VCF has already done the heavy lifting of identifying the variants.
-
-### The Output (Deliverables)
-We are permitted up to **6 submissions**. Each submission requires three components:
-#### 1. Predictions File Format (`track1_submission_template.csv`)
-The CSV must contain one row per proposed causal variant (or compound-heterozygous pair). 
-*   **Ranking:** Rows must be ranked by our Estimated Probability of Causal Relationship (`epcr`), where 1 is the most likely and 0 is the least.
-*   **File Naming:** `<username>_<model-name>.csv`.
-*   **Key Fields:** 
-    *   `proband_id`: Provided in the dataset.
-    *   `chrom_1`, `pos_1`, `ref_1`, `alt_1`: Coordinates (GRCh38) and alleles for the primary variant.
-    *   `chrom_2`, `pos_2`, `ref_2`, `alt_2`: Used *only* for compound-heterozygous pairs.
-    *   `epcr`: Our confidence score (0 to 1].
-    *   `finding_type`: "primary" (MVA candidate) or "secondary" (incidental findings).
-    *   `notes`: Brief rationale.
-
-##### Mapping Biology to the CSV Rows
-MVA is typically an **autosomal recessive** condition, meaning it usually requires *both* copies of a gene to be broken. Here is how the genetics translate to our submission:
-*   **Scenario 1: Homozygous (Same mutation from both parents):** Both parents passed down the exact same mutation. We put this single variant into `chrom_1`, `pos_1`, `ref_1`, `alt_1` and leave the `_2` columns completely blank.
-*   **Scenario 2: Compound Heterozygous (Two different mutations in the same gene):** Mom passed down a mutation at Position A, and Dad passed down a different mutation at Position B inside the *same gene*. We put Mom's variant in the `_1` columns and Dad's variant in the `_2` columns on the **exact same row**. This tells the judges: *"These two variants are working together to break the gene."*
-*   **Scenario 3: Dominant / De Novo (One extremely bad mutation):** A single heterozygous mutation is so severe it causes the disease all by itself. We put this single variant in the `_1` columns and leave the `_2` columns blank.
-
-The ultimate goal is for **Row #1** of our CSV to contain either the single causal variant (Scenario 1 or 3) OR the pair of compound-heterozygous variants (Scenario 2).
-
-#### 2. Methods Report (PDF or Markdown)
- A write-up explaining our approach, any AI tools used, and datasets referenced (format template: `output/track1/methods_description_form.xlsx`).
-#### 3. Code Repository
- This GitHub repository containing the reproducible pipeline.
-
-### Evaluation & Scoring
-The condition might be caused by a single variant (dominant) or two variants (compound heterozygous recessive). Our CSV is automatically scored live on the leaderboard against the clinically confirmed true variant(s).
-1.  **Rank Points:** If our top-ranked row (our #1 guess) exactly matches the true variant(s), we get 100 points. If the correct answer is lower in our list (e.g., #3 or #5), we get partial credit. If the true answer involves two variants (heterozygous pair) and our row only correctly guesses one of them, we get half credit.
-2.  **F-Max:** The maximum F1-score across all possible confidence thresholds (`epcr`). It evaluates the best balance of **precision** (how many of our submitted guesses were actually right) and **recall** (did we find the true variant). The scoring system checks our ranked list and finds the "sweet spot" that maximizes this balance. This rewards pipelines that confidently isolate the right answer and heavily penalizes submissions that dump lots of noisy, low-confidence guesses. *Note: Secondary/incidental findings do not negatively impact the automated score.*
-
-    *   **How F-max is calculated (Example):**
-        *   The F1-score combines Precision and Recall. F-max calculates the F1-score at *every possible cutoff* of your `epcr` confidence values and keeps the highest score.
-        *   **Team 1 (Good F-max):** Submits the true variant with `epcr: 0.99`, and 9 wrong variants with `epcr: 0.05`. At a threshold of 0.90, they have 1 guess, which is 100% accurate. Precision = 1.0, Recall = 1.0. **F-max = 1.0**.
-        *   **Team 2 (Bad F-max):** Submits the true variant with `epcr: 0.99`, and 9 wrong variants with `epcr: 0.98`. At a threshold of 0.90, they have 10 guesses. Precision is only 10% (0.1). Because they couldn't mathematically separate the signal from the noise, their F-max drops significantly.
+> Everything here is a research hypothesis for follow-up, not medical advice. No drug proposed in this repository has been tested for MVA.
 
 ---
 
-## Track 2 - Drug Repurposing
-**Goal:** Identify existing, approved medications that are plausible candidates for further investigation based on the biological mechanisms disrupted in this case. Submissions are hypotheses for follow-up, not evidence that a medicine works.
+## Results at a glance
 
-Once we know (or have a strong guess at) what biological mechanisms are involved from Track 1, the next step is determining if an existing medication acts on this biological problem. We must characterize the mechanism behind the variant(s) and write up our reasoning and proposed candidate medication(s).
+### Track 1 — Variant prediction
+From 5,012,204 variants in the child's whole-genome VCF, the pipeline ranks a **compound-heterozygous pair in *BUB1B*** (the MVA1 gene) first:
 
-### The Input Data & Mechanism Characterization
-The starting point for Track 2 is the output (the answer) from Track 1. Once we have confidently identified the specific causal genetic variant(s) and the affected gene, we use that knowledge as our input to find a potential treatment.
+| | Variant | Consequence |
+|---|---|---|
+| 1 | p.Leu751\* (stop-gain, exon 17) | premature stop; transcript predicted to undergo nonsense-mediated decay |
+| 2 | p.Asn1016Lys (missense, exon 23) | change in the C-terminal pseudokinase domain |
 
-**What is Mechanism Characterization?**
-Before we can pick a drug, we must understand *how* the genetic mutation broke the cell's biology. This step is the "Mechanism Characterization". It involves researching the gene we found in Track 1 to answer:
-*   **Loss-of-Function (LOF):** Did the mutation destroy the gene, leaving the protein missing or broken? If so, we might need a drug that replaces its function, stabilizes the remaining broken protein, or bypasses the broken step in the pathway.
-*   **Gain-of-Function (GOF):** Did the mutation make the protein hyperactive, or cause it to do something toxic? If so, we might need a drug (like an inhibitor) to block it or turn it off.
-*   **Pathways & Downstream Consequences:** What biological cascade does this gene normally control? (For MVA, this is often the "Spindle Assembly Checkpoint" or cell division). If Gene A is broken, does it cause Protein B to accumulate dangerously? We map this out to find "druggable targets"—often proteins *downstream* of the broken gene that a medication can actually interact with.
+`epcr` = **0.9379**, against 0.5627 for the next candidate (*LZTR1*). Phase is not determinable from a single-sample VCF; the pair is consistent with a compound-heterozygous configuration. Protein numbering follows the Ensembl release-99 canonical transcript used by snpEff (Leu737 and Asn1002 in UniProt O60566).
 
-Once this mechanism is clearly mapped out using medical literature (e.g., PubMed), we search pharmacological databases (like DrugBank or ChEMBL) for existing, FDA-approved medications that interact with this specific pathway to correct the downstream consequences.
-
-### The Output (Deliverables)
-We are permitted up to **3 submissions**, but **only the latest entry is reviewed** by the panel. *(Note: Only one designated team member should submit on behalf of the team; duplicate submissions will not be reviewed.)*
-
-Each submission requires three components:
-
-#### 1. Detailed Report (PDF or Markdown)
-A comprehensive written report proposing repositioned drug candidates. 
-*   **Mechanism Characterization:** The report *must* characterize the variant's mechanism (e.g., loss-of-function / gain-of-function, pathway disrupted, downstream biological consequence) to form the basis of the repurposing rationale.
-*   **AI Usage Disclosure:** If an LLM or AI assistant is used, we must record the provider, tier, and data-handling settings (e.g., "Anthropic API, Claude Sonnet, commercial terms, no training on customer content").
-*   **Format:** We should use the provided methods description template (`output/track2/methods_description_form.xlsx`) to organize the analysis.
-*   **File Naming:** `<username>_track2_report.md` (or `.pdf`)
-
-#### 2. Code Repository
-This GitHub repository containing any computational methods or scripts used to find/validate the drug candidates.
-*   Must contain documented, reproducible code and configuration files.
-*   May remain private during the hackathon, but must be made public once it ends for judges to review.
-
-#### 3. Pitch Video
-A 3-minute pitch video walking through our reasoning and proposed candidate(s), uploaded to YouTube or Vimeo.
-
-### Evaluation & Scoring
-Unlike Track 1, Track 2 uses **qualitative evaluation** rather than automated scoring. An independent panel of expert judges will review all entries over a ~2-3 month window. Submissions are evaluated on scientific merit and real-world potential across four weighted criteria:
-
-1.  **Scientific Rigor (35%):** Is the variant mechanism characterization sound? Is the proposed drug repurposing candidate well-supported by that mechanism?
-2.  **Potential Impact (25%):** If independently validated, how much could this contribute to understanding or diagnosing MVA, for this child or for others living with it?
-3.  **Innovation (25%):** Did you bring a genuinely creative angle, method, or tool to the problem?
-4.  **Scalability (15%):** Could your approach realistically be applied to other individuals, other diseases, or larger datasets?
+### Track 2 — Drug repurposing
+- **Mechanism:** partial loss of function. Reduced BubR1 weakens the spindle assembly checkpoint, which causes mosaic aneuploidy, cancer predisposition and an accumulation of senescent cells.
+- **Central finding:** no approved drug acts on any protein at STRING distance 1 from BubR1. Running the same lookup automatically for all eight genes with an MVA or MVA-like phenotype shows the gap holds across MVA: 2 of 108 high-confidence interactors have any approved drug, and neither acts on chromosome segregation.
+- **Prioritised hypotheses:**
+  - **H1 (0.817):** NAD+ precursors → SIRT2 → BubR1 stabilisation, framed as remission maintenance.
+  - **H2 (0.667):** targeting BubR1-driven senescent cells with low-dose rapalogs as senomorphics, with senolytics as a comparator.
+- Both hypotheses fail or stand on the same untested link, and one patient-cell experiment tests it (report §7).
 
 ---
 
-## Glossary & Notes
-* **Phenotype:** The observable, physical expression of a disease or trait (the actual symptoms the doctor sees, like microcephaly or growth restriction).
-* **Genotype:** The underlying genetic code or DNA sequence of the individual.
-* **Homozygous:** Inheriting the exact same genetic variant from both parents (both copies of a gene have the identical mutation).
-* **Heterozygous:** Inheriting a mutated variant from one parent, and a normal, healthy variant from the other.
-* **Compound Heterozygous:** Inheriting two *different* mutated variants in the *same* gene (one broken copy from the mother, and a differently broken copy from the father). Both copies of the gene are broken, but in different ways. The challenge asks us to pair these up in a single row in our CSV if we suspect this is the cause.
-* **FASTQ:** The raw, uninterpreted output straight from the DNA sequencing machine. It consists of billions of tiny puzzle pieces (short strings of DNA letters like A, C, T, G) with no context of where they belong in the human genome.
-* **VCF (Variant Call Format):** How we find the differences. Bioinformaticians use massive computing power to take the billions of FASTQ "puzzle pieces" and match (align) them to a standard human reference blueprint. Once aligned, the computer compares the child's DNA to the reference and throws away everything that is identical, recording *only the differences*. A VCF file lists these differences (e.g., "At chromosome 1, position 100,000, a normal reference has an 'A', but this child has a 'T'").
+## Deliverables
+
+| Track | File |
+|---|---|
+| 1 | Submission CSV: [`output/track1/lostanos_hpo_matcher_v1.csv`](output/track1/lostanos_hpo_matcher_v1.csv) |
+| 1 | Methods description: [`output/track1/methods_description_submission.md`](output/track1/methods_description_submission.md) · report: [`output/track1/lostanos_track1_report.pdf`](output/track1/lostanos_track1_report.pdf) |
+| 2 | Report: [`output/track2/lostanos_track2_report.md`](output/track2/lostanos_track2_report.md) |
+| 2 | Methods description (organisers' template): [`output/track2/lostanos_track2_methods_description.xlsx`](output/track2/lostanos_track2_methods_description.xlsx) |
+| 2 | Pitch video: *link added on upload* · script: [`output/track2/lostanos_track2_pitch_script.md`](output/track2/lostanos_track2_pitch_script.md) |
+| both | Figures for non-specialists (EN/ES): [`docs/figures/`](docs/figures/) |
+
+## Repository layout
+
+```
+docs/
+  00-references.md     every paper, database and tool consulted
+  01-procedure.md      the plan, step by step, with an Experiments table per step
+  02-findings.md       insights as they were found, attributed to the notebook/script that produced them
+  figures/             build_*.py -> bilingual HTML + PNG
+notebooks/
+  track{N}_step{S}_exp{NN}-{slug}.ipynb   versioned experiments (Track 1, steps 0-5)
+  utils/               consolidated, runnable pipeline scripts (Track 1 steps 2-5, Track 2 steps 3, 4, 6)
+output/
+  track1/              submission CSV, methods description, report; templates/ holds the organisers' blanks
+  track2/              report, methods description, pitch script, Step 3/4/6 result tables
+requirements.txt
+```
+
+## How to reproduce
+
+### Setup
+```bash
+pip install -r requirements.txt
+```
+Python 3.12. `bcftools` and `tabix` are not needed: VCF I/O is pure Python (`cyvcf2`, `gzip`).
+
+### Track 2 (public data only, no patient data needed)
+Run from the repository root:
+```bash
+python notebooks/utils/track2_step3_drug_mapping.py            # ~5 min; live ChEMBL, DGIdb, STRING, UniProt queries
+python notebooks/utils/track2_step4_prioritize.py              # instant, offline; scores the hypotheses
+python notebooks/utils/track2_step6_mva_druggability_scan.py   # ~4 min; same lookup for all 8 MVA genes
+python docs/figures/build_track2_mechanisms_figure.py          # regenerates the mechanisms figure
+```
+Outputs go to `output/track2/`. Database contents change over time, so a re-run on a later date can differ slightly from the committed tables (queried 2026-10-14).
+
+### Track 1 (requires the gated patient data)
+1. **Get the data.** The VCF and clinical document are gated: request access on the hackathon's Hugging Face Space and accept the data-use terms. Put the files in `data/` at the repository root (`data/` is gitignored). Also place there:
+   - dbSNP Common `common_all_20180418.vcf.gz` (NCBI, GRCh38);
+   - HPO `hp.obo` and `genes_to_phenotype.txt` (release 2026-09-01).
+2. **snpEff.** Install snpEff and Java 17. The `GRCh38.99` database cannot be downloaded with the current snpEff release, so build it from Ensembl release 99 with `snpEff build -gtf22 GRCh38.99` (details in [`docs/02-findings.md`](docs/02-findings.md), "Environment & Reference-Data Findings").
+3. **Run the steps** from the repository root. Each step reads the previous step's output from `data/` by default:
+   ```bash
+   python notebooks/utils/run_step2_prefilter.py           # QC, allelic balance, dbSNP Common subtraction -> 591,339 variants
+   java -Xmx8g -jar snpEff/snpEff.jar -canon GRCh38.99 data/track1_step2_rare_variants.vcf.gz > data/snpeff_annotated.vcf
+   python notebooks/utils/track1_step3a_annotate.py        # HIGH/MODERATE filter + MyVariant.info (gnomAD, CADD, REVEL, ClinVar)
+   python notebooks/utils/step3b_alphagenome.py            # AlphaGenome Atlas scores; needs ALPHAGENOME_API_KEY in the environment or .env
+   python notebooks/utils/track1_step4_prioritize.py       # HPO phenotype matching (Resnik) + MVA panel tiers
+   python notebooks/utils/track1_step5_submission.py       # epcr ranking -> output/track1/lostanos_hpo_matcher_v1.csv
+   ```
+   The same steps are available as notebooks in `notebooks/`, run with `notebooks/` as the working directory. The submitted CSV came from the notebook run of Step 3 (905 HIGH/MODERATE variants); a separate script run of Step 3 kept 1,526, and the cause of the difference is recorded as open in [`docs/02-findings.md`](docs/02-findings.md).
+
+Filtering thresholds (GQ ≥ 20, DP ≥ 10, allelic balance 0.30–0.70 for heterozygous calls, gnomAD AF ≤ 1 %) and the rationale for each are in [`docs/01-procedure.md`](docs/01-procedure.md).
+
+## Data privacy
+
+The child's genome and clinical record are not in this repository. The VCF, FASTQ, clinical document and every intermediate file carrying genotypes stay in the gitignored `data/` folder and are deleted at the end of the hackathon, as the data-use agreement requires. The only patient-derived content committed is what the deliverables themselves need: the ten ranked variants of the Track 1 submission and the named *BUB1B* variants discussed in the reports.
+
+## AI usage
+
+AI assistants were used for coding, literature search and writing. The provider, plan and data-handling setting for each tool are recorded in the methods descriptions of both tracks, as the organisers require.
+
+## License
+
+The organisers release participant submissions, code and reports under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). This repository is released under the same license; see [`LICENSE`](LICENSE).

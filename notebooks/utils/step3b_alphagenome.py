@@ -49,8 +49,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-DEFAULT_INPUT = REPO_ROOT / "track1_step3a_snpeff_filter.vcf.gz"
-DEFAULT_OUTPUT = REPO_ROOT / "track1_step3b_regulatory_annotated.vcf.gz"
+DEFAULT_INPUT = REPO_ROOT / "data" / "track1_step3a_snpeff_filter.vcf.gz"
+DEFAULT_OUTPUT = REPO_ROOT / "data" / "track1_step3_annotation_and_filtering.vcf.gz"
 SCORERS = ["AVI_SCORE", "AVI_SCORE_FEATURE_IMPORTANCE"]
 MAX_RETRIES = 5
 

@@ -10,7 +10,7 @@ How each row is built:
     which is the expected model in MVA. A homozygous-alt variant goes alone.
     A gene with a single het goes alone, with an inheritance penalty.
   * raw epcr = weighted geometric mean of phenotype, pathogenicity,
-    inheritance and frequency (src/epcr.py), with a x1.2 bonus for genes in
+    inheritance and frequency (notebooks/utils/epcr.py), with a x1.2 bonus for genes in
     the MVA panel or annotated to the MVA disease in HPO.
   * Separation: --max-rows rows are kept and each one is capped at
     --tail-ratio times the previous one. F-max sweeps every distinct epcr as
@@ -22,7 +22,7 @@ F-max the leaderboard would return, with the same logic as its evaluation.py.
 It shows what every extra row costs.
 
 Usage:
-    python track1_step5_submission.py --username <hf-user> --model variant-filter-v1
+    python notebooks/utils/track1_step5_submission.py   # defaults reproduce lostanos_hpo_matcher_v1.csv
     python track1_step5_submission.py --max-rows 3 --tail-ratio 0.5
 """
 
@@ -118,6 +118,9 @@ def build_rows(variants: list[dict], chr_prefix: bool, max_af: float = 0.01) -> 
             rows.append(CandidateRow((variant_key(v1, chr_prefix), variant_key(v2, chr_prefix)),
                                      round(raw, 4), gene, f"compound-het | {note_for(v1, s1)} | {note_for(v2, s2)}"))
             used.update((id(v1), id(v2)))
+        # Known limitation: with >= 3 hets in a gene, the leftovers become single rows
+        # but keep the compound-het inheritance score. Kept as is so the submitted
+        # file stays reproducible; the geometric tail decay limits the effect.
         for v, s in hets:
             if id(v) in used:
                 continue
@@ -128,9 +131,9 @@ def build_rows(variants: list[dict], chr_prefix: bool, max_af: float = 0.01) -> 
 def main():
     ap = argparse.ArgumentParser(description="Step 5: epcr and submission CSV")
     ap.add_argument("--input", default=str(DEFAULT_INPUT))
-    ap.add_argument("--username", default="team", help="HF user or team name for the CSV file name")
-    ap.add_argument("--model", default="hpo-epcr-v1", help="model name for the CSV file name")
-    ap.add_argument("--max-rows", type=int, default=5, help="rows to submit (maximum 10)")
+    ap.add_argument("--username", default="lostanos", help="HF user or team name for the CSV file name")
+    ap.add_argument("--model", default="hpo_matcher_v1", help="model name for the CSV file name")
+    ap.add_argument("--max-rows", type=int, default=10, help="rows to submit (maximum 10)")
     ap.add_argument("--tail-ratio", type=float, default=0.6, help="each row <= ratio x the previous one")
     ap.add_argument("--top-cap", type=float, default=0.95)
     ap.add_argument("--no-chr-prefix", action="store_true", help="emit '1' instead of 'chr1'")

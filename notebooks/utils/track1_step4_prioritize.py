@@ -10,7 +10,7 @@ What it does, in order:
      reproduce without the document.
   2. Loads the ontology (hp.obo) and HPO's gene->phenotype annotations
      (genes_to_phenotype.txt) and computes the semantic similarity of every
-     gene to the patient (see src/hpo.py). Exact term overlap gives 0 for
+     gene to the patient (see notebooks/utils/hpo.py). Exact term overlap gives 0 for
      almost everything because diseases are annotated with siblings or
      parents of the patient's terms; the ontology gives partial credit.
   3. Groups variants by gene, derives zygosity and whether the gene has
@@ -28,7 +28,7 @@ Outputs:
 
 Usage:
     python track1_step4_prioritize.py
-    python track1_step4_prioritize.py --input track1_step3b_regulatory_annotated.vcf.gz
+    python track1_step4_prioritize.py --input data/track1_step3a_snpeff_filter.vcf.gz   # without AlphaGenome scores
     python track1_step4_prioritize.py --hpo HP:0002859 HP:0000121 ...
 """
 
@@ -44,9 +44,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.hpo import Ontology, PhenotypeMatcher, load_gene_annotations  # noqa: E402
+from notebooks.utils.hpo import Ontology, PhenotypeMatcher, load_gene_annotations  # noqa: E402
 
-DEFAULT_INPUT = REPO_ROOT / "track1_step3a_snpeff_filter.vcf.gz"
+DEFAULT_INPUT = REPO_ROOT / "data" / "track1_step3_annotation_and_filtering.vcf.gz"
 DEFAULT_DOCX = REPO_ROOT / "data" / "Challenge_Clinical_Phenotype_1.docx"
 DEFAULT_OBO = REPO_ROOT / "data" / "hp.obo"
 DEFAULT_G2P = REPO_ROOT / "data" / "genes_to_phenotype.txt"

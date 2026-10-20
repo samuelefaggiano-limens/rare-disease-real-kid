@@ -29,7 +29,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| `track1_step0_exp01-data_exploration.ipynb` | Initial exploration of VCF and Clinical data formats, missingness, and general stats. | Done |
+| `track1_step0_exp01-data_exploration.ipynb` | Initial exploration of VCF and Clinical data formats, missingness, and general stats. | Done: 5,012,204 raw variants, GRCh38 numeric contigs, single sample. |
 
 ### Step 1: Phenotype Extraction (HPO Mapping)
 *   **Input:** `data/Challenge_Clinical_Phenotype_1.docx`
@@ -40,7 +40,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| `track1_step1_exp01-hpo_extraction.ipynb` | Extracts the HPO terms provided in the `Challenge_Clinical_Phenotype_1.docx` file into a list of IDs. | Done |
+| `track1_step1_exp01-hpo_extraction.ipynb` | Extracts the HPO terms provided in the `Challenge_Clinical_Phenotype_1.docx` file into a list of IDs. | 8 HPO terms extracted (listed in `02-findings.md`). |
 
 ### Step 2: VCF Pre-Filtering
 *   **Input:** `data/WGS_EX2312012_HGWCNDSX7.vcf.gz` (Unannotated VCF, 5,012,204 variants)
@@ -108,7 +108,7 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   `track1_step3_annotation_and_filtering.vcf.gz`.
 *   **Action:** Compare the genes disrupted by our candidate variants against the child's actual documented symptoms, and boost variants in genes that are already known to cause this specific disease.
 *   **Implementation Details:**
-    *   **Gene mapping:** each variant is linked to a gene using SnpEff's `GENE_SYMBOL` from Stage 3.2.
+    *   **Gene mapping:** each variant is linked to a gene using SnpEff's `GENE_SYMBOL` from Stage 3.1.
     *   **Matching symptoms to genes (semantic similarity):** matching the child's symptoms to a gene's known symptoms cannot rely on exact text matching, because doctors and databases describe the same underlying problem in different words (e.g. "seizures" versus the broader "abnormality of the nervous system"). We instead use the **Human Phenotype Ontology (HPO)**, a structured map of how medical terms relate to one another, and measure how *close* the child's symptoms are to each candidate gene's known symptom profile, using standard similarity algorithms (Resnik, Lin) via the `pyhpo` library. Each variant receives a `PHENOTYPE_SIMILARITY_SCORE` based on this closeness.
         We also record a `PHENOTYPE_SCORE_IS_NULL` flag for genes that have **no** documented symptom profile at all in the database. This distinction matters: a gene with no documented symptoms is simply unstudied, which is different from a gene whose documented symptoms clearly don't match this child. Both would otherwise score as "0," which would unfairly bury variants in unstudied genes — and this disease is rare enough that an unstudied gene is a real possibility.
     *   **Reference data:** we load the HPO project's `genes_to_phenotype.txt` file locally (rather than querying a live web API), and record exactly which release version of this file we used, so the analysis can be reproduced later.
@@ -118,13 +118,13 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
         *   This gene panel, with a short note on why each gene is included, is kept in its own file (`data/mva_panel.tsv`) rather than buried in code, so it is easy to review and update.
     *   **Identifying compound-heterozygous candidates:** MVA is usually recessive, meaning it typically requires *both* copies of a gene to be broken — either the same broken copy inherited from both parents, or two different broken copies, one from each parent (a "compound heterozygous" case). We group our surviving variants by gene and flag any gene carrying two or more different candidate variants, since this is exactly the pattern the final submission format is designed to capture. Because we do not have the parents' DNA, we cannot directly prove that two such variants came from different parents — we can only note that a gene carries two plausible broken copies, and we state this limitation clearly rather than overstating our confidence.
 *   **Tools:** Python (`pyhpo`, `networkx`, `pandas`), the local `genes_to_phenotype.txt` dataset, `data/mva_panel.tsv`.
-*   **Output:** a master candidate table (CSV) in `track1_step4_phenotype_matching.csv`, enriched with `PHENOTYPE_SIMILARITY_SCORE`, `PHENOTYPE_SCORE_IS_NULL`, `MVA_PANEL_TIER`, and `COMPOUND_HET_CANDIDATE`, ready for final ranking in Step 5.
+*   **Output:** a master candidate table, `data/track1_step4_candidates.tsv` (the notebook also writes a CSV copy, `track1_step4_phenotype_matching.csv`), enriched with `PHENOTYPE_SIMILARITY_SCORE`, `PHENOTYPE_SCORE_IS_NULL`, `MVA_PANEL_TIER`, and `COMPOUND_HET_CANDIDATE`, ready for final ranking in Step 5.
 
 **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | Prioritized variants with phenotype similarities and saved detailed findings to `docs/02-findings.md` |
+| `track1_step4_exp01-phenotype_matching.ipynb` | Extracts phenotype similarities for all genes affected by variations and identifies compound heterozygous variants. Maps variants to MVA Tier 1 and 2 panels. | *BUB1B* ranked #2 among candidate genes (Resnik 0.632) and was the only Tier 1 panel gene with rare HIGH/MODERATE variants (two heterozygous variants, flagged compound-het). Details in `docs/02-findings.md`. |
 
 ### Step 5: Ranking and Submission
 
@@ -146,13 +146,13 @@ This document outlines the exhaustive, end-to-end bioinformatics and computation
     *   A compound-heterozygous pair identified in Step 4 → both variants go on the **same row**, one in the `_1` columns and one in the `_2` columns, sharing a single `epcr` score. A proposed pair must never be split across two separate rows — the scoring system treats each row as one complete hypothesis, and splitting a pair turns one potentially fully-correct guess into two only-half-credit guesses.
     *   A single, extremely severe variant proposed as a dominant/spontaneous cause → `_1` columns alone.
     *   The `notes` field for each row should briefly state the gene, the exact mutation, what it does to the protein, and the one-line reason we believe it's relevant.
-*   **Output:** the notebook `/notebooks/track1_step5_exp01-ranking.ipynb` saves the top 10 candidates with their EPCR scores. 
+*   **Output:** the notebook `notebooks/track1_step5_exp01-ranking.ipynb` saves the top 10 candidates with their EPCR scores. 
 
 **Experiments:**
 
 | Notebook | Description | Results |
 | :--- | :--- | :--- |
-| `track1_step5_exp01-ranking.ipynb` | Applies the EPCR scoring logic to the prioritized variants, groups compound-heterozygous pairs, and formats the top 10 candidates. | Identified BUB1B compound-heterozygous pair as top candidate (EPCR=0.9379) and exported to `output/track1/templates/track1_submission_template.csv`. |
+| `track1_step5_exp01-ranking.ipynb` | Applies the EPCR scoring logic to the prioritized variants, groups compound-heterozygous pairs, and formats the top 10 candidates. | Identified BUB1B compound-heterozygous pair as top candidate (EPCR=0.9379) and exported to `output/track1/lostanos_hpo_matcher_v1.csv`. |
 
 ---
 
@@ -276,6 +276,8 @@ efficacy; CMap/LINCS results should be treated as hypothesis-supporting
 evidence because transcriptomic signatures can be context-, dose-, and
 cell-type-dependent.
 
+> **Status:** the CMap/LINCS check was **not performed**. Within the hackathon timeline we prioritised the drug-target mapping and the MVA-wide scan, and the candidate compounds (NAD+ precursors in particular) have little or no L1000 profiling. No hypothesis in the final ranking relies on transcriptomic evidence. The plan above is kept as the intended next step (see the report, §9.1).
+
 **Output:** A candidate-drug table with a transparent evidence trail
 from BUB1B dysfunction to the proposed drug effect.
 
@@ -333,11 +335,11 @@ produced as a literature analysis with no code.
 | 1 · Mechanism | *(literature analysis)* | Characterises each allele and the combined effect: L751* stop-gain expected to undergo NMD (null allele), N1016K missense in the C-terminal pseudokinase domain required for PP2A-B56 recruitment. | Mechanistic chain established and recorded in `docs/02-findings.md`. |
 | 2 · Targets | *(literature analysis)* | Evidence-weighted network from BUB1B dysfunction to modifiable processes, across SAC components, APC/C regulation, kinetochore biology and aneuploidy vulnerabilities. | Five prioritised therapeutic nodes. **Four were subsequently revised or discarded in Step 3** (see below). The two hypotheses finally prioritised in Step 4 (NAD+/SIRT2, senescence) were not among these five: they come from the BubR1-dosage and senescence literature in `00-references.md` §4-5, added during Steps 3-4. |
 | 3 · Drugs | `notebooks/utils/track2_step3_drug_mapping.py` + `track2_target_panel.tsv` | Maps a 35-protein panel to approved drugs via ChEMBL (primary), DGIdb (cross-check) and STRING (network distance). Records direction concordance against the desired modulation. | **All 18 proteins at network distance 1 from BUB1B have zero approved concordant drugs**; all 26 approved concordant drugs found act on proteins at distance 2-3 or with no STRING path to BUB1B. Outputs in `output/track2/`. |
-| 3 · CMap/LINCS | — | Transcriptomic signature check proposed above as supporting evidence. | **Not performed.** No candidate in the current ranking relies on it; the Step 4 scores use only literature, ChEMBL/DGIdb and STRING evidence. Either run it for the H1/H2 compounds or drop it from the Step 3 description. |
+| 3 · CMap/LINCS | — | Transcriptomic signature check proposed above as supporting evidence. | **Not performed.** No candidate in the current ranking relies on it; the Step 4 scores use only literature, ChEMBL/DGIdb and STRING evidence. Not run within the hackathon timeline; kept as a proposed follow-up (report §9.1). |
 | 3 · Figure | `docs/figures/build_track2_mechanisms_figure.py` | Documents all 12 routes with the reason each is retained or discarded, in five categories. EN/ES, same build-script convention as the Track 1 figure. | `docs/figures/track2_mechanisms_explained.html` + PNG. |
 | 4 · Prioritisation | `notebooks/utils/track2_step4_prioritize.py` + `track2_step4_candidates.tsv` | Transparent weighted scoring on the five axes above, with mechanistic relevance and directionality dominant so drug availability alone cannot carry a candidate. | Two prioritised hypotheses: NAD+/SIRT2 BubR1 stabilisation (0.817) and senescent-cell clearance (0.667). Output in `output/track2/`. |
-| 5 · Deliverables | `output/track2/lostanos_track2_report.md`, `lostanos_track2_methods_description.xlsx`, `lostanos_track2_pitch_script.md` | Report, methods form, AI-usage disclosure, pitch video. | Report and methods form drafted; pitch video recorded. AI-usage disclosure still pending. |
-| 6 · MVA-wide scan | `notebooks/utils/track2_step6_mva_druggability_scan.py` | Scalability check: the same drug lookup run automatically (no curated panel, direction-agnostic) on the top-15 STRING interactors of all eight genes with a reported MVA phenotype. | Only 2 of 108 first-shell interactors have any approved drug, neither relevant to chromosome segregation; no MVA gene is itself druggable. ~4 min. Outputs `output/track2/track2_step6_mva_scan_*.csv`. |
+| 5 · Deliverables | `output/track2/lostanos_track2_report.md`, `lostanos_track2_methods_description.xlsx`, `lostanos_track2_pitch_script.md` | Report, methods form, AI-usage disclosure, pitch video. | Report and methods form drafted; pitch video recorded and edited (3:22), upload to YouTube/Vimeo pending. AI-usage disclosure still pending. |
+| 6 · MVA-wide scan | `notebooks/utils/track2_step6_mva_druggability_scan.py` | Scalability check: the same drug lookup run automatically (no curated panel, direction-agnostic) on up to 15 high-confidence STRING interactors of all eight genes with a reported MVA phenotype. | Only 2 of 108 first-shell interactors have any approved drug, neither relevant to chromosome segregation; no MVA gene is itself druggable. ~4 min. Outputs `output/track2/track2_step6_mva_scan_*.csv`. |
 
 **Reproducing Track 2:**
 

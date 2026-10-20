@@ -48,7 +48,7 @@ MAX_SCORE = 3.0
 
 # Hypotheses that are not candidates but are reported for completeness:
 # H3 is a mechanism-derived research question rather than a repurposing
-# proposal, H4 is a documented druggability gap (negative result).
+# proposal. Every other hypothesis, H4 included, is ranked as a candidate.
 NON_CANDIDATE_CONCEPTS = {"pharmacogenomic_caution"}
 
 

@@ -201,6 +201,8 @@ def build(panel_path: Path, out_dir: Path, verbose: bool = True) -> dict[str, pd
         n_mech = 0
         for tg in targets:
             for m in chembl_mechanisms(tg["target_chembl_id"]):
+                if not m.get("molecule_chembl_id"):
+                    continue
                 mol = chembl_molecule(m["molecule_chembl_id"])
                 n_mech += 1
                 rows.append({

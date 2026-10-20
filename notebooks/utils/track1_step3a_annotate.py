@@ -31,8 +31,8 @@ import requests
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-DEFAULT_INPUT = REPO_ROOT / "snpeff_annotated.vcf"
-DEFAULT_OUTPUT = REPO_ROOT / "track1_step3a_snpeff_filter.vcf.gz"
+DEFAULT_INPUT = REPO_ROOT / "data" / "snpeff_annotated.vcf"
+DEFAULT_OUTPUT = REPO_ROOT / "data" / "track1_step3a_snpeff_filter.vcf.gz"
 
 API_URL = "https://myvariant.info/v1/variant"
 MAX_RETRIES = 5

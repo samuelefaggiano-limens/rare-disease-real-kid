@@ -26,7 +26,7 @@ MVA is not caused by a single gene — several different genes, when broken, can
 |---|---|---|---|---|
 | **BUB1B** | MVA syndrome 1 | Compound heterozygous (one broken copy from each parent, different mutations) | Structural brain anomalies, developmental delay (seen prenatally in 2nd trimester) | [Genetic analysis of two fetuses with MVA (BUB1B)](https://pubmed.ncbi.nlm.nih.gov/40555658/) |
 | **CEP57** | MVA syndrome 2 | Homozygous (same broken copy from both parents; more common when parents are related) | Intrauterine growth restriction, severe short stature, unusual facial features, skeletal abnormalities, congenital heart defects, delayed development | [Novel CEP57 mutation in MVA syndrome 2](https://pubmed.ncbi.nlm.nih.gov/41700350/) |
-| **TRIP13** | MVA syndrome 3 | Null (loss-of-function) variant | Strong link to **multiple tumors over a lifetime** (e.g., Wilms' tumor as a young child, followed years later by a tumor behind the eye) | [Wilms' tumor and orbital rhabdomyosarcoma in MVA syndrome 3](https://pubmed.ncbi.nlm.nih.gov/42595739/) |
+| **TRIP13** | MVA syndrome 3 | Biallelic null (recessive) | Strong link to **multiple tumors over a lifetime** (e.g., Wilms' tumor as a young child, followed years later by a tumor behind the eye) | [Wilms' tumor and orbital rhabdomyosarcoma in MVA syndrome 3](https://pubmed.ncbi.nlm.nih.gov/42595739/) |
 | **MAD2L1BP** (makes the protein p31comet) | Related aneuploidy/tumor-predisposition condition | Homozygous nonsense variant (biallelic) | Small head size (microcephaly), severe epilepsy, ovarian/testicular tumors in childhood; patient cells showed severe MVA and slowed cell growth in the lab | [Biallelic MAD2L1BP mutation and juvenile granulosa cell tumors](https://pubmed.ncbi.nlm.nih.gov/37796616/) |
 | **CEP192** | MVA syndrome with tetraploidy | Biallelic (recessive) | Microcephaly, short stature, limb-extremity dysplasia, tetraploidy, and predisposition to male infertility. | [Mosaic variegated aneuploidy syndrome with tetraploid... mutant CEP192](https://pubmed.ncbi.nlm.nih.gov/37981762/) |
 | **SMC5** | Atelis Syndrome / MVA with near-tetraploidy | Compound heterozygous / recessive | Near-tetraploidy, mild developmental delay, hypospadias (milder presentation) or severe growth failure and multi-system abnormalities. | [Recessive SMC5 Variants in a Family with Near-Tetraploidy/Mosaic Variegated Aneuploidy](https://pubmed.ncbi.nlm.nih.gov/41374403/) |
@@ -35,19 +35,18 @@ MVA is not caused by a single gene — several different genes, when broken, can
 **How to use this table for Track 1:** Match the child's clinical features (growth, brain findings, tumor history, seizures, etc.) against the "Typical features" column. Whichever gene's known phenotype overlaps best with the child's actual symptoms is the strongest candidate to search first in his genome data — this is the essence of *phenotype-guided* prioritization rather than blindly ranking all variants genome-wide.
 
 ## 3. Rationale for Prioritizing Coding and Splicing Variants in WGS Analysis
-**High Diagnostic Yield in Coding Regions:** Although protein-coding exomes represent merely ~1–2% of the human genome, approximately 85% of documented pathogenic variants responsible for monogenic, Mendelian disorders are located within exons and canonical splice junctions.
+**High Diagnostic Yield in Coding Regions:** Although protein-coding exomes represent merely ~1–2% of the human genome, approximately 85% of documented pathogenic variants responsible for monogenic, Mendelian disorders are located within exons and canonical splice junctions (sources 7 and 9 below).
 
-**Clear Functional Predictability:** Coding variants—such as frameshifts, nonsense (premature stop codons), canonical splice site disruptions (+/- 1 bp, +/-2 bp), and severe missense changes have interpretable, direct consequences on transcript architecture and protein stability under established clinical guidelines.
+**Clear Functional Predictability:** Coding variants—such as frameshifts, nonsense (premature stop codons), canonical splice site disruptions (+/- 1 bp, +/-2 bp), and severe missense changes have interpretable, direct consequences on transcript architecture and protein stability under established clinical guidelines (source 8, ACMG/AMP).
 
 **Signal-to-Noise Ratio & Computational Limitations:** Whole Genome Sequencing (WGS) yields millions of non-coding variants per individual. Current in silico tools have limited specificity in deep intronic and intergenic spaces, leading to high false-positive rates and uninterpretable Variants of Uncertain Significance (VUS) without transcriptomic validation.
 
 **Filtering Strategy:** Prioritizing exonic and flanking splice regions is a standard Tier-1 clinical genomics workflow. 
 
-***Non-coding intronic sequences are routinely excluded in early filtration steps unless:*** No causal candidate emerges in primary coding analysis.
-
-***The variant occurs within canonical/extended splice-donor/acceptor regions.***
-
-***A well-characterized deep-intronic cryptic splice site or regulatory variant matches the phenotype and can be validated (e.g., via RNA-Seq or functional reporter assays).***
+**Non-coding intronic sequences are routinely excluded in early filtration steps unless** (source 10):
+- no causal candidate emerges in primary coding analysis;
+- the variant occurs within canonical/extended splice-donor/acceptor regions;
+- a well-characterized deep-intronic cryptic splice site or regulatory variant matches the phenotype and can be validated (e.g., via RNA-Seq or functional reporter assays).
 
 ## 4. A Critical Filtering Caution (Don't Over-Filter by Population Frequency)
 
@@ -55,7 +54,7 @@ When processing a whole-genome VCF file, a standard step is to remove "common" v
 
 However, one study found a disease-causing variant (in a different gene, *MOCS2*, unrelated to MVA) that reaches **~3.6% frequency** within one specific subpopulation (the Roma population), even though it is very rare worldwide. This happens because of a **founder effect** — a mutation that arose in one ancestral group and became relatively common within that group through inheritance, while staying rare everywhere else.
 
-**Practical implication for Track 1:** If your pipeline applies a strict, single global frequency cutoff (e.g., "remove anything above 1%"), you risk accidentally throwing away the real causal variant — especially if the family belongs to a smaller or historically isolated population group. A safer approach is to use a lower and/or population-specific frequency threshold rather than one blanket global cutoff.
+**Practical implication for Track 1:** If your pipeline applies a strict, single global frequency cutoff (e.g., "remove anything above 1%"), you risk accidentally throwing away the real causal variant — especially if the family belongs to a smaller or historically isolated population group. A safer approach is to use a more permissive (higher) and/or population-specific frequency threshold rather than one blanket global cutoff.
 
 Source: [A prevalent MOCS2 variant in the Roma population and mild molybdenum cofactor deficiency](https://pubmed.ncbi.nlm.nih.gov/40707723/)
 
@@ -67,7 +66,7 @@ Source: [A prevalent MOCS2 variant in the Roma population and mild molybdenum co
 3. Novel CEP57 mutation (MVA syndrome 2): https://pubmed.ncbi.nlm.nih.gov/41700350/
 4. TRIP13 variant and multiple tumors (MVA syndrome 3): https://pubmed.ncbi.nlm.nih.gov/42595739/
 5. MAD2L1BP / p31comet mutation and tumors: https://pubmed.ncbi.nlm.nih.gov/37796616/
-6. MOCS2 founder variant and filtering lesson: https://pubmed.ncbi.nlm.nih.gov/40707723/
+6. MOCS2 founder variant and filtering lesson (Cho 2025): https://pubmed.ncbi.nlm.nih.gov/40707723/
 7. Genetic diagnosis by whole exome capture: https://pubmed.ncbi.nlm.nih.gov/19861545/
 8. ACMG/AMP sequence variant interpretation standards: https://doi.org/10.1038/gim.2015.30
 9. The Human Gene Mutation Database (HGMD): https://pubmed.ncbi.nlm.nih.gov/28349240/
@@ -128,13 +127,15 @@ Source: [BubR1 controls heart development by promoting expression of cardiogenes
 
 ## 3. Putting It Together: Three Angles for Track 2
 
+> **Superseded.** This was the initial Track 2 framing. The Wnt and neural-stem-cell routes were later set aside because this child presents neither congenital heart defects nor microcephaly; see §7 below and `02-findings.md` (Track 2, Step 3).
+
 | Affected system | What goes wrong | Druggable strategy pointed to | Source |
 |---|---|---|---|
 | Brain (neural stem cells) → microcephaly | Protein-handling and mitochondrial stress overload energy-hungry stem cells, causing them to die or stop dividing | ROS scavengers, mitochondrial chaperones, apoptosis inhibitors | [Link](https://pubmed.ncbi.nlm.nih.gov/41820377/) |
 | Brain (cortex) → microcephaly | Chromosome-damaged cells die via P53 **and** a separate, unidentified P53-independent pathway | Don't rely on P53-pathway drugs alone; likely needs a combination approach | [Link](https://pubmed.ncbi.nlm.nih.gov/37900274/) |
 | Heart → congenital defects (e.g., septal defects) | Wnt signaling becomes hyperactive, disrupting normal heart-cell development | Existing Wnt-pathway inhibitor drugs (already explored in other diseases, e.g., cancer) | [Link](https://pubmed.ncbi.nlm.nih.gov/40055864/) |
 
-**Suggested framing for a Track 2 proposal:** Since the child's own specific symptoms (from Track 1's genetic work) will point to which organ systems are most affected, this table lets you match symptoms to mechanism and then to an existing drug class:
+**Suggested framing for a Track 2 proposal:** Since the child's own specific symptoms (from the clinical document) will point to which organ systems are most affected, this table lets you match symptoms to mechanism and then to an existing drug class:
 - If microcephaly/brain involvement is prominent → look at repurposing antioxidants, mitochondria-protective agents, or anti-apoptotic compounds (but consider combination therapy, given the P53-independent pathway finding).
 - If congenital heart defects are prominent → look at repurposing existing Wnt-pathway-modulating drugs.
 
@@ -206,10 +207,12 @@ Recorded so the reasoning is not repeated. See `docs/02-findings.md` (Track 2, S
 | Growth hormone for short stature | Reported ineffective in a CEP57-related MVA case despite high IGF-1. The defect is mitotic, not endocrine. | [PMID 35434947](https://pubmed.ncbi.nlm.nih.gov/35434947/) |
 | KIF18A inhibition (CIN-selective) | Requires a *competent* checkpoint to kill; SAC-deficient cells survive it. MPS1 inhibition can restore the dependency, but neither agent is approved. | [PMID 42647139](https://pubmed.ncbi.nlm.nih.gov/42647139/) |
 | Targeting the aneuploid state (proteasome, metabolic) | Approved drugs exist, but this eliminates aneuploid cells rather than correcting the defect — selective toxicity, not rescue, in a body where aneuploidy is constitutional. | [PMID 21315436](https://pubmed.ncbi.nlm.nih.gov/21315436/) |
-| Wnt inhibition; neural stem cell protection | Sound evidence, but for congenital heart defects and microcephaly respectively — **neither is reported for this child** in the clinical document. | §Track 2 above |
+| Wnt inhibition; neural stem cell protection | Sound evidence, but for congenital heart defects and microcephaly respectively — **neither is reported for this child** in the clinical document. | Track 2 §2A and §2C above |
 
 
 ## Sources at a Glance (Track 2, Steps 3-4)
+
+*Numbering note: the Track 1 list above is numbered 1-13; the Track 2 lists form one sequence (1-3 for §2, then 4 onward). Cross-references in the docs use PMIDs, not these numbers.*
 
 4. BubR1 insufficiency causes early ageing phenotypes (Baker 2004): https://pubmed.ncbi.nlm.nih.gov/15208629/
 5. Increased BubR1 protects against aneuploidy and cancer (Baker 2013): https://pubmed.ncbi.nlm.nih.gov/23242215/
@@ -225,9 +228,9 @@ Recorded so the reasoning is not repeated. See `docs/02-findings.md` (Track 2, S
 15. Reduced-intensity chemotherapy in MVA rhabdomyosarcoma (Nishitani-Isa 2019): https://pubmed.ncbi.nlm.nih.gov/31184400/
 16. Cancer surveillance in genomic instability disorders (Nakano 2024): https://pubmed.ncbi.nlm.nih.gov/39264246/
 17. Aneuploidy-selective antiproliferation compounds (Tang 2011): https://pubmed.ncbi.nlm.nih.gov/21315436/
-18. SAC competency determines KIF18A sensitivity (2026): https://pubmed.ncbi.nlm.nih.gov/42647139/
+18. SAC competency determines KIF18A sensitivity (Tabe 2026): https://pubmed.ncbi.nlm.nih.gov/42647139/
 19. CEP57 MVA case, growth hormone ineffective (Feng 2022): https://pubmed.ncbi.nlm.nih.gov/35434947/
-20. BubR1 pseudokinase domain recruits PP2A-B56 (2020): https://pubmed.ncbi.nlm.nih.gov/33207204/
+20. BubR1 pseudokinase domain recruits PP2A-B56 (Gama 2020): https://pubmed.ncbi.nlm.nih.gov/33207204/
 
 ### Databases queried (Step 3)
 
@@ -262,4 +265,41 @@ Cited in `02-findings.md` (Track 2 follow-up) and/or `output/track2/lostanos_tra
 34. Metformin inhibits the SASP via IKK/NF-κB (Moiseeva 2013): https://pubmed.ncbi.nlm.nih.gov/23521863/
 35. Metformin and the hallmarks of ageing (Kulkarni 2020): https://pubmed.ncbi.nlm.nih.gov/32333835/
 36. JAK inhibition alleviates the SASP and frailty (Xu 2015): https://pubmed.ncbi.nlm.nih.gov/26578790/
-37. ACMG/AMP standards for the interpretation of sequence variants (Richards 2015): https://pubmed.ncbi.nlm.nih.gov/25741868/
+37. ACMG/AMP standards for the interpretation of sequence variants (Richards 2015): https://pubmed.ncbi.nlm.nih.gov/25741868/ (same paper as Track 1 source 8)
+
+
+## Sources at a Glance (Track 2, Steps 1-2 literature analysis)
+
+Cited in `02-findings.md` (Track 2, Steps 1 and 2); metadata retrieved from Europe PMC. PPR identifiers are preprints.
+
+38. Defining the molecular basis of BubR1 kinetochore interactions and APC/C-CDC20 inhibition (D'Arcy 2010, *J Biol Chem*): https://pubmed.ncbi.nlm.nih.gov/20220147/
+39. BubR1 TPR domain supports mitotic checkpoint by promoting MCC formation and MCC-APC/C interaction (Zhang 2025, *bioRxiv*): https://europepmc.org/article/PPR/PPR1101323
+40. BubR1 TPR domain supports the mitotic checkpoint by promoting MCC formation and MCC-APC/C interaction (Zhang 2026, *Commun Biol*): https://pubmed.ncbi.nlm.nih.gov/42477419/
+41. The Use of APC/C Antagonists to Promote Mitotic Catastrophe in Cancer Cells (Mayah 2025, *Methods Mol Biol*): https://pubmed.ncbi.nlm.nih.gov/39614058/
+42. Development of D-box peptides to inhibit the anaphase-promoting complex/cyclosome (Eapen 2025, *Elife*): https://pubmed.ncbi.nlm.nih.gov/40888475/
+43. Pan-Cdk inhibitor ZK304709 suppresses Cdc20 expression and potentiates the anticancer activity of apcin in HeLa cervical cancer cells (Le 2026, *Acta Pharm*): https://pubmed.ncbi.nlm.nih.gov/41416401/
+44. Discovery of Cdc20/Hsp90 Dual-Target Inhibitors with Potent Antitumor Activity for Therapy of Acquired Resistant Melanoma (Chen 2025, *J Med Chem*): https://pubmed.ncbi.nlm.nih.gov/41103026/
+45. Design, synthesis and optimization of Apcin analogues as Cdc20 inhibitors for triple-negative breast cancer therapy (Le 2025, *Eur J Med Chem*): https://pubmed.ncbi.nlm.nih.gov/40020424/
+46. CCT5 maintains mitotic fidelity and promotes early colorectal tumorigenesis (Ji 2026, *iScience*): https://pubmed.ncbi.nlm.nih.gov/41890968/
+47. Halorotetin B, A Novel Terpenoid Compound Derived from Marine Ascidian, Suppresses Tumor Growth by Targeting the Cell Cycle Regulator UBE2C (Han 2026, *Adv Sci (Weinh)*): https://pubmed.ncbi.nlm.nih.gov/41387196/
+48. Emerging Roles of B56 Phosphorylation and Binding Motif in PP2A-B56 Holoenzyme Biological Function (Zhang 2024, *Int J Mol Sci*): https://pubmed.ncbi.nlm.nih.gov/38542160/
+49. Phosphatase regulation in cell division: With emphasis on PP2A-B56 (Oh 2025, *Mol Cells*): https://pubmed.ncbi.nlm.nih.gov/40684918/
+50. CENP-E initiates chromosome congression by opposing Aurora kinases to promote end-on attachments (Vukušić 2025, *Nat Commun*): https://pubmed.ncbi.nlm.nih.gov/41120314/
+51. Linking kinetochore attachment to checkpoint control: the role of Aurora B in BubR1 acetylation (Choi 2026, *Nucleic Acids Res*): https://pubmed.ncbi.nlm.nih.gov/41533580/
+52. PICH impacts the spindle assembly checkpoint via its DNA translocase and SUMO-interaction activities (Lama 2025, *Life Sci Alliance*): https://pubmed.ncbi.nlm.nih.gov/39919802/
+53. Targeting TRIP13 for overcoming anticancer drug resistance (Review) (Zhao 2023, *Oncol Rep*): https://pubmed.ncbi.nlm.nih.gov/37800638/
+54. The KIF18A Inhibitor ATX020 Induces Mitotic Arrest and DNA Damage in Chromosomally Instable High-Grade Serous Ovarian Cancer Cells (Nair 2025, *Cells*): https://pubmed.ncbi.nlm.nih.gov/41369352/
+55. The SKA complex is a mitotic vulnerability of chromosomally unstable cancers (Uiterkamp 2026, *bioRxiv*): https://europepmc.org/article/PPR/PPR1235559
+56. KIF18A inhibitor prevents chromosomally unstable osteosarcoma growth by activating spindle assembly checkpoint (Yan 2026, *Cancer Biol Ther*): https://pubmed.ncbi.nlm.nih.gov/42328720/
+57. High CDC20 levels increase sensitivity of cancer cells to MPS1 inhibitors (Zheng 2025, *EMBO Rep*): https://pubmed.ncbi.nlm.nih.gov/39838194/
+58. The scaffold protein PRR14L links the PP2A-TACC3 axis to mitotic fidelity and sensitivity to MPS1 inhibition (Liu 2025, *bioRxiv*): https://europepmc.org/article/PPR/PPR1114839
+59. The scaffold protein PRR14L is linked to mitotic fidelity and sensitivity to MPS1 inhibition (Liu 2026, *Mol Biol Cell*): https://pubmed.ncbi.nlm.nih.gov/42160513/
+60. Targeting Cell Cycle Vulnerabilities in Cancers: Emerging Strategies for Therapeutic Development (Kamakura 2026, *Cancer Sci*): https://pubmed.ncbi.nlm.nih.gov/42222984/
+61. Chromosomal instability in cancer: sources, consequences and new therapeutic opportunities (Serpico 2026, *Signal Transduct Target Ther*): https://pubmed.ncbi.nlm.nih.gov/42760281/
+62. Impact of Chromosomal Instability and Aneuploidy in Cancer Development (Mennie 2026, *Annu Rev Cancer Biol*): https://pubmed.ncbi.nlm.nih.gov/42137044/
+63. Increased RNA and Protein Degradation Is Required for Counteracting Transcriptional Burden and Proteotoxic Stress in Human Aneuploid Cells (Ippolito 2024, *Cancer Discov*): https://pubmed.ncbi.nlm.nih.gov/39247952/
+64. Tick-Tock: Cancer Cell Division Cycle Clocks Strike Midnight (Schuyler 2025, *Int J Mol Sci*): https://pubmed.ncbi.nlm.nih.gov/40650052/
+65. Aneuploidy generates enhanced nucleotide dependency and sensitivity to metabolic perturbation (Magesh 2025, *Genes Dev*): https://pubmed.ncbi.nlm.nih.gov/40324880/
+66. An aneuploidy epistasis map reveals metabolic vulnerabilities associated with supernumerary chromosomes in cancer (Magesh 2024, *bioRxiv*): https://europepmc.org/article/PPR/PPR918366
+67. Deficiency in POLE Exonuclease Causes Synthetic Lethality in Highly Aneuploid Cancer Cells (Kim 2026, *Cancer Res*): https://pubmed.ncbi.nlm.nih.gov/42258764/
+68. HIF1A-mediated pathways promote euploid cell survival in chromosomally mosaic embryos (Sanchez-Vasquez 2025, *Elife*): https://pubmed.ncbi.nlm.nih.gov/41086100/
