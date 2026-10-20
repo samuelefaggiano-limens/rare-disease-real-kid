@@ -388,7 +388,8 @@ Open Targets was evaluated and not used: its `knownDrugs` field was unavailable 
 
 ## 12. AI usage disclosure
 
-> **⚠ TODO BEFORE SUBMISSION (team — required by the organisers):** provider, plan/tier and data-handling setting for each AI tool used, e.g. "Anthropic, Claude Opus via Claude Code, <plan>, <training/retention setting>" and "Google, Gemini Pro, <plan>, <setting>".
+- Google Cloud Vertex AI (Gemini API), training on our data disabled by Google's data-use policy, no 👍/👎 feedback provided.
+- Anthropic, Claude Team plan (Claude Code desktop app, Claude Opus), commercial terms, no training on customer content, no 👍/👎 feedback provided.
 
 AI assistants were used for literature triage, code writing and drafting text. Every PMID cited in this report was checked against Europe PMC. The scientific choices — the target panel, the directions of modulation, the scoring weights and the final hypotheses — were reviewed by the team.
 

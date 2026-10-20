@@ -18,7 +18,8 @@ Our computational approach consists of a 5-step automated pipeline designed for 
 *   **Step 5 (Ranking & EPCR Scoring):** We unified phenotype similarity, pathogenicity scores (CADD, REVEL, AVI_PHRED, ClinVar), allele frequencies, and inheritance modeling into an Estimated Probability of Causal Relationship (EPCR). The pipeline successfully isolated a compound-heterozygous pair in *BUB1B* (a stop-gain and a missense variant) as the top candidate. It achieved an EPCR of 0.9379, a clear separation from the second-ranked candidate (LZTR1, EPCR=0.5627).
 
 ### 4. (required) If commercially-available Generative AI was used, record the provider, the plan or tier, and the relevant data-handling setting.
-> **TODO (team):** one line per tool, e.g. "Anthropic, Claude Opus via Claude Code, <plan>, training opt-out enabled, no feedback provided" and "Google, Gemini Pro, <plan>, <setting>".
+- Google Cloud Vertex AI (Gemini API), training on our data disabled by Google's data-use policy, no 👍/👎 feedback provided.
+- Anthropic, Claude Team plan (Claude Code desktop app, Claude Opus), commercial terms, no training on customer content, no 👍/👎 feedback provided.
 
 ### 5. Please state whether the submission file is the automated output of your computational approach (preferred), or if it has undergone downstream manual review and curation.
 The submission file is the unedited, automated output of our computational approach. The EPCR scoring and final ranking were generated programmatically. The manual checks described in Q6 were done after generation and did not change any score or rank.
